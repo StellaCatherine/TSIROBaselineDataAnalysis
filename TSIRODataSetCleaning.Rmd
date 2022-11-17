@@ -1,0 +1,132 @@
+---
+title: "TSIRO Dataset Cleaning"
+author: "Stella Banino"
+date: '2022-10-04'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(moderndive)
+library(modelr)
+library(haven)
+library(purrr)
+```
+
+Importing the data
+```{r import}
+setwd("C:/Users/scban/Documents/UVA/TSIROBaselineDataAnalysis")
+tsiro_raw_data <- read_dta("TSIRO_baseline_public_gender.dta")
+view(tsiro_raw_data)
+```
+
+
+```{r learning a bit more about gender respondents}
+
+head_sex_count_table <- tsiro_raw_data %>%
+  group_by(head_sex)%>%
+  count(head_sex)%>%
+  rename(sex = head_sex, head_sex = n)
+view(head_sex_count_table)
+  
+spouse_sex_count_table <- tsiro_raw_data %>%
+  group_by(spouse_sex)%>%
+  count(spouse_sex)%>%
+  rename(sex = spouse_sex, spouse_sex = n)
+view(spouse_sex_count_table)
+
+b_sex_count_table <- tsiro_raw_data %>%
+  group_by(mod_b_respondent_sex)%>%
+  count(mod_b_respondent_sex)%>%
+  rename(sex = mod_b_respondent_sex, roster_respondent_sex = n)
+
+d_sex_count_table <- tsiro_raw_data %>%
+  group_by(mod_d_respondent_sex)%>%
+  count(mod_d_respondent_sex)%>%
+  rename(sex = mod_d_respondent_sex, agriculture_respondent_sex = n)
+
+e_sex_count_table <- tsiro_raw_data %>%
+  group_by(mod_e_respondent_sex)%>%
+  count(mod_e_respondent_sex)%>%
+  rename(sex = mod_e_respondent_sex, credit_respondent_sex = n)
+
+f_sex_count_table <- tsiro_raw_data %>%
+  group_by(mod_f_respondent_sex)%>%
+  count(mod_f_respondent_sex)%>%
+  rename(sex = mod_f_respondent_sex, nat_resources_respondent_sex = n)
+
+g_sex_count_table <- tsiro_raw_data %>%
+  group_by(mod_g_respondent_sex)%>%
+  count(mod_g_respondent_sex)%>%
+  rename(sex = mod_g_respondent_sex, energy_respondent_sex = n)
+
+i_sex_count_table <- tsiro_raw_data %>%
+  group_by(mod_i_respondent_sex)%>%
+  count(mod_i_respondent_sex)%>%
+  rename(poverty_respondent_sex = n)
+
+c_sex_count_table <- tsiro_raw_data %>%
+  group_by(mod_c_respondent_sex)%>%
+  count(mod_c_respondent_sex)%>%
+  rename(sex = mod_c_respondent_sex, health_respondent_sex = n)
+
+c_wdd_sex_count_table <- tsiro_raw_data %>%
+  group_by(mod_c_wdd_respondent_sex)%>%
+  count(mod_c_wdd_respondent_sex)%>%
+  rename(sex = mod_c_wdd_respondent_sex, wdd_respondent_sex = n)
+
+h_sex_count_table <- tsiro_raw_data %>%
+  group_by(mod_h_respondent_sex)%>%
+  count(mod_h_respondent_sex)%>%
+  rename(sex = mod_h_respondent_sex, gender_respondent_sex = n)
+view(h_sex_count_table)
+
+
+sex_count_table <- list(head_sex_count_table, spouse_sex_count_table, b_sex_count_table, d_sex_count_table, e_sex_count_table, f_sex_count_table, g_sex_count_table, c_sex_count_table, c_wdd_sex_count_table, h_sex_count_table)%>%
+  reduce(full_join, by = "sex")%>%
+  mutate(sex = toString(sex))%>%
+  mutate(sex = ifelse(sex=="1", "M", sex))%>%
+  mutate(sex = ifelse(sex=="2", "F", sex))%>%
+  #There's 100% a cleaner way to do this
+  replace(is.na(.), 0)%>%
+  pivot_longer(cols = 2:11, names_to = "categories", values_to = "amount")%>%
+  pivot_wider(names_from = sex, values_from = amount)%>%
+  arrange(desc(F))
+
+view(sex_count_table)
+```
+
+
+
+
+Cutting the unnecessary variables
+
+```{r trim}
+
+tsiro_trimmed <- tsiro_raw_data %>%
+  select(hhsize:read_head, plots, total_plot_area_ha, ownership_a_allplots:farm_activities, crops_grown, )
+view(tsiro_trimmed)
+
+```
+
+Adding gender back into credit section
+```{r}
+#starting w pseudocode
+#mutate: create a new column.  if (respondent == M AND financial decision == SELF, M
+```
+
+
+
+Planning
+
+Maybe try to incorporate in a gender empowerment index, based on SWPER but modified to this dataset?  Replace unavailable data w similar or similarly relevant data?
+
+Would love to have biodiversity data - it would really add to this
+
+Definitely incorporate score on how much they care about protecting the environment
+
+Is it possible to make a sustainability index?  Should probably incorporate harmful activities (how much deforestation, weighted percentage of unclean fuel use, destructive agriculture practices) and helpful activities (reforestation, resource conservation, sustainably agriculture practices)
+
+Is there a good poverty indicator?  Maybe ask Kelvin's advice on this
+
