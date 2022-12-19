@@ -1,7 +1,7 @@
 ---
-title: "TSIRO Dataset Cleaning"
+title: "TSIRO Baseline Data Analysis"
 author: "Stella Banino"
-date: '2022-10-04'
+date: '2022-12-19'
 output: html_document
 ---
 
@@ -14,15 +14,18 @@ library(haven)
 library(purrr)
 ```
 
-##Importing the data
+## Importing the data
+
 ```{r import}
 setwd("C:/Users/scban/Documents/UVA/TSIROBaselineDataAnalysis")
 tsiro_raw_data <- read_dta("TSIRO_baseline_public_gender.dta")
 view(tsiro_raw_data)
 ```
 
-##Gender breakdown
+## Gender breakdown
+
 In this block, we're counting the number of men and women who are heads of household, spouses, and respondents to each module and figuring out which modules had more male respondents and which had more female respondents.
+
 ```{r learning a bit more about gender respondents}
 
 head_sex_count_table <- tsiro_raw_data %>%
@@ -101,6 +104,7 @@ sex_count_table <- list(head_sex_count_table, spouse_sex_count_table, b_sex_coun
 ## Breaking down and cleaning the dataset
 
 Let's start by dividing the dataset into each separate module and making the sex columns easier to understand.
+
 ```{r}
 
 tsiro_fm_data <- tsiro_raw_data%>%
@@ -129,7 +133,7 @@ view(empower)
 ```
 
 
-####Adding gender back into credit section
+#### Adding gender back into credit section
 
 starting w some planning...(and thinking out loud in R markdown)
 
@@ -212,13 +216,47 @@ credit_gender <- credit %>%
 #changes borrow_(institution)_y to say whether they did (1) or didn't (0) borrow from the institution.
   mutate(borrow_ngo_y = abs(replace_na(borrow_ngo_y, 1)-1), borrow_formal_y = abs(replace_na(borrow_formal_y, 1)-1), borrow_informal_y = abs(replace_na(borrow_informal_y, 1)-1), borrow_friend_y = abs(replace_na(borrow_friend_y, 1)-1), borrow_group_y = abs(replace_na(borrow_group_y, 1)-1), borrow_sav_y = abs(replace_na(borrow_sav_y, 1)-1))
 
-credit_gender_b <- tsiro_raw_data%>%
-  select(mod_e_respondent_sex, loan_ngo:assist_inputs)%>%
-  mutate(borrow_ngo_y = abs(replace_na(borrow_ngo_y, 1)-1), borrow_formal_y = abs(replace_na(borrow_formal_y, 1)-1), borrow_informal_y = abs(replace_na(borrow_informal_y, 1)-1), borrow_friend_y = abs(replace_na(borrow_friend_y, 1)-1), borrow_group_y = abs(replace_na(borrow_group_y, 1)-1), borrow_sav_y = abs(replace_na(borrow_sav_y, 1)-1))#%>%
-#  mutate(spouse_of_respondent = )
-#  mutate(borrow_ngo_self = borrow_ngo_a*mod_e_respondent_sex, borrow_ngo_spouse = borrow_ngo_b*)
-glimpse(credit_gender_b)
 
+credit_gender_b <- tsiro_raw_data%>%
+  select(head_sex, spouse_sex, mod_e_respondent_sex, loan_ngo:assist_inputs)%>%
+  mutate(borrow_ngo_y = abs(replace_na(borrow_ngo_y, 1)-1), 
+         borrow_formal_y = abs(replace_na(borrow_formal_y, 1)-1), 
+         borrow_informal_y = abs(replace_na(borrow_informal_y, 1)-1), 
+         borrow_friend_y = abs(replace_na(borrow_friend_y, 1)-1), 
+         borrow_group_y = abs(replace_na(borrow_group_y, 1)-1), 
+         borrow_sav_y = abs(replace_na(borrow_sav_y, 1)-1))%>%
+  mutate(borrow_ngo_self = borrow_ngo_a*mod_e_respondent_sex, 
+         borrow_ngo_spouse = abs(((head_sex+spouse_sex+mod_e_respondent_sex)%%2)-2)*borrow_ngo_b, 
+         borrow_ngo_inside = borrow_ngo_c*3, 
+         borrow_ngo_outside = borrow_ngo_d*4, .before = use_ngo)
+
+all_test_replace <- list(
+  remove_all_nas = ~na_if(.x,0),
+  conversion = ~as.character(.x),
+  mtest = ~str_replace(.x, "1","M"),
+  ftest = ~str_replace(.x, "2","F"),
+  itest = ~str_replace(.x, "3","I"),
+  otest = ~str_replace(.x, "4","O")
+)
+
+credit_gender_alt <- credit_gender_b%>%
+  as_tibble()%>%
+  mutate(across(borrow_ngo_self:borrow_ngo_outside), na_if(.,0))%>%
+  mutate(across(borrow_ngo_self:borrow_ngo_outside), convert(chr(.)))%>%
+  mutate(across(borrow_ngo_self:borrow_ngo_outside), str_replace(.,c("1","2","3","4"),c("M","F","I","O")))%>%
+  unite(borrow_ngo_gender, borrow_ngo_self:borrow_ngo_outside, sep = "")
+
+credit_gender_intermediate <- credit_gender_b%>%
+  select(borrow_ngo_self:borrow_ngo_outside)%>%
+  mutate_all(~na_if(., 0))%>%
+  mutate_all(as.character)%>%
+  mutate_all(funs(str_replace(., "1","M")))%>%
+  mutate_all(funs(str_replace(., "2","F")))%>%
+  mutate_all(funs(str_replace(., "3","I")))%>%
+  mutate_all(funs(str_replace(., "4","O")))%>%
+  unite(borrow_ngo_gender, borrow_ngo_self, borrow_ngo_spouse, borrow_ngo_inside, borrow_ngo_outside, na.rm = TRUE, sep = "")
+
+view(credit_gender_intermediate)
 ```
 
 
