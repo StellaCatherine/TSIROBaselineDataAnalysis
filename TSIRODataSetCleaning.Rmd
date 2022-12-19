@@ -1,7 +1,7 @@
 ---
-title: "TSIRO Dataset Cleaning"
+title: "TSIRO Baseline Data Analysis"
 author: "Stella Banino"
-date: '2022-10-04'
+date: '2022-12-19'
 output: html_document
 ---
 
@@ -14,15 +14,18 @@ library(haven)
 library(purrr)
 ```
 
-##Importing the data
+## Importing the data
+
 ```{r import}
 setwd("C:/Users/scban/Documents/UVA/TSIROBaselineDataAnalysis")
 tsiro_raw_data <- read_dta("TSIRO_baseline_public_gender.dta")
 view(tsiro_raw_data)
 ```
 
-##Gender breakdown
+## Gender breakdown
+
 In this block, we're counting the number of men and women who are heads of household, spouses, and respondents to each module and figuring out which modules had more male respondents and which had more female respondents.
+
 ```{r learning a bit more about gender respondents}
 
 head_sex_count_table <- tsiro_raw_data %>%
@@ -101,6 +104,7 @@ sex_count_table <- list(head_sex_count_table, spouse_sex_count_table, b_sex_coun
 ## Breaking down and cleaning the dataset
 
 Let's start by dividing the dataset into each separate module and making the sex columns easier to understand.
+
 ```{r}
 
 tsiro_fm_data <- tsiro_raw_data%>%
@@ -129,7 +133,7 @@ view(empower)
 ```
 
 
-####Adding gender back into credit section
+#### Adding gender back into credit section
 
 starting w some planning...(and thinking out loud in R markdown)
 
