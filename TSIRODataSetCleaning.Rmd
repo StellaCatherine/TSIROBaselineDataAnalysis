@@ -14,27 +14,28 @@ library(haven)
 library(purrr)
 ```
 
-Importing the data
+##Importing the data
 ```{r import}
 setwd("C:/Users/scban/Documents/UVA/TSIROBaselineDataAnalysis")
 tsiro_raw_data <- read_dta("TSIRO_baseline_public_gender.dta")
 view(tsiro_raw_data)
 ```
 
-
+##Gender breakdown
+In this block, we're counting the number of men and women who are heads of household, spouses, and respondents to each module and figuring out which modules had more male respondents and which had more female respondents.
 ```{r learning a bit more about gender respondents}
 
 head_sex_count_table <- tsiro_raw_data %>%
   group_by(head_sex)%>%
   count(head_sex)%>%
   rename(sex = head_sex, head_sex = n)
-view(head_sex_count_table)
+#view(head_sex_count_table)
   
 spouse_sex_count_table <- tsiro_raw_data %>%
   group_by(spouse_sex)%>%
   count(spouse_sex)%>%
   rename(sex = spouse_sex, spouse_sex = n)
-view(spouse_sex_count_table)
+#view(spouse_sex_count_table)
 
 b_sex_count_table <- tsiro_raw_data %>%
   group_by(mod_b_respondent_sex)%>%
@@ -80,7 +81,7 @@ h_sex_count_table <- tsiro_raw_data %>%
   group_by(mod_h_respondent_sex)%>%
   count(mod_h_respondent_sex)%>%
   rename(sex = mod_h_respondent_sex, gender_respondent_sex = n)
-view(h_sex_count_table)
+#view(h_sex_count_table)
 
 
 sex_count_table <- list(head_sex_count_table, spouse_sex_count_table, b_sex_count_table, d_sex_count_table, e_sex_count_table, f_sex_count_table, g_sex_count_table, c_sex_count_table, c_wdd_sex_count_table, h_sex_count_table)%>%
@@ -94,31 +95,134 @@ sex_count_table <- list(head_sex_count_table, spouse_sex_count_table, b_sex_coun
   pivot_wider(names_from = sex, values_from = amount)%>%
   arrange(desc(F))
 
-view(sex_count_table)
+#view(sex_count_table)
 ```
 
+## Breaking down and cleaning the dataset
 
-
-
-Cutting the unnecessary variables
-
-```{r trim}
-
-tsiro_trimmed <- tsiro_raw_data %>%
-  select(hhsize:read_head, plots, total_plot_area_ha, ownership_a_allplots:farm_activities, crops_grown, )
-view(tsiro_trimmed)
-
-```
-
-Adding gender back into credit section
+Let's start by dividing the dataset into each separate module and making the sex columns easier to understand.
 ```{r}
-#starting w pseudocode
-#mutate: create a new column.  if (respondent == M AND financial decision == SELF, M
+
+tsiro_fm_data <- tsiro_raw_data%>%
+  mutate_at(c("head_sex", "spouse_sex", "mod_b_respondent_sex", "mod_c_respondent_sex", "mod_d_respondent_sex", "mod_e_respondent_sex", "mod_f_respondent_sex", "mod_i_respondent_sex", "mod_h_respondent_sex", "mod_g_respondent_sex", "mod_c_wdd_respondent_sex"), as.character)%>%
+  mutate(across(c("head_sex", "spouse_sex", "mod_b_respondent_sex", "mod_c_respondent_sex", "mod_d_respondent_sex", "mod_e_respondent_sex", "mod_f_respondent_sex", "mod_i_respondent_sex", "mod_h_respondent_sex", "mod_g_respondent_sex", "mod_c_wdd_respondent_sex"), str_replace, "1", "M"))%>%
+  mutate(across(c("head_sex", "spouse_sex", "mod_b_respondent_sex", "mod_c_respondent_sex", "mod_d_respondent_sex", "mod_e_respondent_sex", "mod_f_respondent_sex", "mod_i_respondent_sex", "mod_h_respondent_sex", "mod_g_respondent_sex", "mod_c_wdd_respondent_sex"), str_replace, "2", "F"))
+#glimpse(tsiro_raw_data)
+
+roster <- select(tsiro_fm_data, head_sex,spouse_sex,region,hhsize:read_head)
+agriculture <- select(tsiro_fm_data, mod_d_respondent_sex, plots:nrm_pract_y)
+credit <- select(tsiro_fm_data, mod_e_respondent_sex, loan_ngo:assist_inputs)
+resources <- select(tsiro_fm_data, mod_f_respondent_sex, trees:threats_other_EN)
+energy <- select(tsiro_fm_data, mod_g_respondent_sex, fuel_sources:fuel_dist1_3)
+poverty <- select(tsiro_fm_data, mod_i_respondent_sex, tv:detergent)
+foodsec <- select(tsiro_fm_data, mod_c_respondent_sex, mod_c_wdd_respondent_sex, fies_enough:mddw)
+empower <- select(tsiro_fm_data, mod_h_respondent_sex, partner:alone)
+
+view(roster)
+view(agriculture)
+view(credit)
+view(resources)
+view(energy)
+view(poverty)
+view(foodsec)
+view(empower)
 ```
 
 
+####Adding gender back into credit section
 
-Planning
+starting w some planning...(and thinking out loud in R markdown)
+
+basically...
+
+M+a1 = M
+
+  I, a man, made this decision.  Possibly by myself and possibly with my wife.
+  
+M+a0 = not M
+
+  I, a man, did not make this decision.  Possibilities: wife made this decision, decision wasn't made at all.
+  
+F+a1 = F
+
+  I, a woman, made this decision.  Possibly by myself and possibly with my husband.
+  
+F+a0 = not F
+
+  I, a woman, did not make this decision.  Possibilities: husband made this decision, decision wasn't made at all
+  
+M+b1 = F
+
+  My spouse, theoretically a woman, made this decision.  Possibilities: I made it with her or she made it by herself.
+  update: not necessarily a woman.  Need to double-check spouse's gender.
+  
+M+b0 = not F
+
+  My spouse, theoretically a woman, did not make this decision.  Possibilities: I made it without her or neither of us made it.
+  
+F+b1 = M
+
+F+b0 = not M
+
+realizing this assumes every couple in the dataset is straight.  going to check real quick to make sure this is an assumption I can make.  update: it's not.  love that they've found love but darn it messes up my math.
+
+after, I'm imagining each set of columns looking like:
+
+did you borrow from x?
+
+options: 1 (yes), 0 (no)
+
+who made the decision to borrow from x?
+
+options: "M", "F", "MF", "N", "S", "MS", "FS", "MFS", where N is no one and S is someone else (inside or outside household)
+
+factor it by power of the woman in the decision? kinda hard to define, so no
+
+who decided how to use money from x?
+
+options: "M", "F", "MF", "N", "S", "MS", "FS", "MFS", where N is no one and S is someone else (inside or outside household)
+
+etc. for each institution
+
+ok how do I want to go about this?
+
+Might be easiest to create a column M or 0, F or 0, S or 0, and then add them together.  Any still 0 will become N.
+
+Don't bother w columns where the value is 0 - it doesn't provide info that isn't provided elsewhere.
+
+change self to M, F, and 0.  change spouse to M, F, and 0.  change both other columns to S and 0.  concatenate all four into one column.
+
+How to tackle the spouse column?
+
+![scratchpad discrete math](IMG_6699.jpg)
+
+```{r}
+non_straight_households <- tsiro_fm_data%>%
+  filter(head_sex == spouse_sex)
+#view(non_straight_households)
+#I consider myself an ally but...darnit.  the gays are messing up my math.
+#let's check if they actually borrowed money - ie if I actually have to adjust the code.
+non_straight_households_credit <- non_straight_households%>%
+  select(mod_e_respondent_sex, loan_ngo:assist_inputs)
+#view(non_straight_households_credit)
+#ok one of the MM households borrowed from a friend and both spouses contributed to the decision.  I'll structure the code around this.
+#I'll take all this out (the above stuff) later, just keeping it for reference now.
+
+credit_gender <- credit %>%
+#changes borrow_(institution)_y to say whether they did (1) or didn't (0) borrow from the institution.
+  mutate(borrow_ngo_y = abs(replace_na(borrow_ngo_y, 1)-1), borrow_formal_y = abs(replace_na(borrow_formal_y, 1)-1), borrow_informal_y = abs(replace_na(borrow_informal_y, 1)-1), borrow_friend_y = abs(replace_na(borrow_friend_y, 1)-1), borrow_group_y = abs(replace_na(borrow_group_y, 1)-1), borrow_sav_y = abs(replace_na(borrow_sav_y, 1)-1))
+
+credit_gender_b <- tsiro_raw_data%>%
+  select(mod_e_respondent_sex, loan_ngo:assist_inputs)%>%
+  mutate(borrow_ngo_y = abs(replace_na(borrow_ngo_y, 1)-1), borrow_formal_y = abs(replace_na(borrow_formal_y, 1)-1), borrow_informal_y = abs(replace_na(borrow_informal_y, 1)-1), borrow_friend_y = abs(replace_na(borrow_friend_y, 1)-1), borrow_group_y = abs(replace_na(borrow_group_y, 1)-1), borrow_sav_y = abs(replace_na(borrow_sav_y, 1)-1))#%>%
+#  mutate(spouse_of_respondent = )
+#  mutate(borrow_ngo_self = borrow_ngo_a*mod_e_respondent_sex, borrow_ngo_spouse = borrow_ngo_b*)
+glimpse(credit_gender_b)
+
+```
+
+
+## Miscellaneous Planning - it's old (pre-analysis), so don't worry about this part
 
 Maybe try to incorporate in a gender empowerment index, based on SWPER but modified to this dataset?  Replace unavailable data w similar or similarly relevant data?
 
