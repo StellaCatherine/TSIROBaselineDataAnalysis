@@ -542,140 +542,190 @@ credit_gender &lt;- credit %&gt;%
 #changes borrow_(institution)_y to say whether they did (1) or didn&#39;t (0) borrow from the institution.
   mutate(borrow_ngo_y = abs(replace_na(borrow_ngo_y, 1)-1), borrow_formal_y = abs(replace_na(borrow_formal_y, 1)-1), borrow_informal_y = abs(replace_na(borrow_informal_y, 1)-1), borrow_friend_y = abs(replace_na(borrow_friend_y, 1)-1), borrow_group_y = abs(replace_na(borrow_group_y, 1)-1), borrow_sav_y = abs(replace_na(borrow_sav_y, 1)-1))
 
+#get ready for the world&#39;s longest pipe - I spent two days trying to find a way
+#to avoid this, to no avail.
 credit_gender_b &lt;- tsiro_raw_data%&gt;%
-  select(mod_e_respondent_sex, loan_ngo:assist_inputs)%&gt;%
-  mutate(borrow_ngo_y = abs(replace_na(borrow_ngo_y, 1)-1), borrow_formal_y = abs(replace_na(borrow_formal_y, 1)-1), borrow_informal_y = abs(replace_na(borrow_informal_y, 1)-1), borrow_friend_y = abs(replace_na(borrow_friend_y, 1)-1), borrow_group_y = abs(replace_na(borrow_group_y, 1)-1), borrow_sav_y = abs(replace_na(borrow_sav_y, 1)-1))#%&gt;%
-#  mutate(spouse_of_respondent = )
-#  mutate(borrow_ngo_self = borrow_ngo_a*mod_e_respondent_sex, borrow_ngo_spouse = borrow_ngo_b*)
-glimpse(credit_gender_b)</code></pre>
-<pre><code>## Rows: 755
-## Columns: 126
-## $ mod_e_respondent_sex &lt;dbl&gt; 1, 1, 2, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 2, 1, 1, 1~
-## $ loan_ngo             &lt;dbl+lbl&gt; 4, 4, 4, 4, 1, 4, 4, 4, 4, 4, 4, 4, 1, 4, 4, ~
-## $ borrow_ngo           &lt;chr&gt; &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;A B&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;~
-## $ borrow_ngo_a         &lt;dbl+lbl&gt; NA, NA, NA, NA,  1, NA, NA, NA, NA, NA, NA, N~
-## $ borrow_ngo_b         &lt;dbl+lbl&gt; NA, NA, NA, NA,  1, NA, NA, NA, NA, NA, NA, N~
-## $ borrow_ngo_c         &lt;dbl+lbl&gt; NA, NA, NA, NA,  0, NA, NA, NA, NA, NA, NA, N~
-## $ borrow_ngo_d         &lt;dbl+lbl&gt; NA, NA, NA, NA,  0, NA, NA, NA, NA, NA, NA, N~
-## $ borrow_ngo_y         &lt;dbl&gt; 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0~
-## $ use_ngo              &lt;chr&gt; &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;A B&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;~
-## $ use_ngo_a            &lt;dbl+lbl&gt; NA, NA, NA, NA,  1, NA, NA, NA, NA, NA, NA, N~
-## $ use_ngo_b            &lt;dbl+lbl&gt; NA, NA, NA, NA,  1, NA, NA, NA, NA, NA, NA, N~
-## $ use_ngo_c            &lt;dbl+lbl&gt; NA, NA, NA, NA,  0, NA, NA, NA, NA, NA, NA, N~
-## $ use_ngo_d            &lt;dbl+lbl&gt; NA, NA, NA, NA,  0, NA, NA, NA, NA, NA, NA, N~
-## $ use_ngo_y            &lt;dbl+lbl&gt; NA, NA, NA, NA,  0, NA, NA, NA, NA, NA, NA, N~
-## $ loan_informal        &lt;dbl+lbl&gt; 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, ~
-## $ borrow_informal      &lt;chr&gt; &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;~
-## $ borrow_informal_a    &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
-## $ borrow_informal_b    &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
-## $ borrow_informal_c    &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
-## $ borrow_informal_d    &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
-## $ borrow_informal_y    &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0~
-## $ use_informal         &lt;chr&gt; &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;~
-## $ use_informal_a       &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
-## $ use_informal_b       &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
-## $ use_informal_c       &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
-## $ use_informal_d       &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
-## $ use_informal_y       &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
-## $ loan_formal          &lt;dbl+lbl&gt; 4, 4, 4, 1, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, ~
-## $ borrow_formal        &lt;chr&gt; &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;A B&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;~
-## $ borrow_formal_a      &lt;dbl+lbl&gt; NA, NA, NA,  1, NA, NA, NA, NA, NA, NA, NA, N~
-## $ borrow_formal_b      &lt;dbl+lbl&gt; NA, NA, NA,  1, NA, NA, NA, NA, NA, NA, NA, N~
-## $ borrow_formal_c      &lt;dbl+lbl&gt; NA, NA, NA,  0, NA, NA, NA, NA, NA, NA, NA, N~
-## $ borrow_formal_d      &lt;dbl+lbl&gt; NA, NA, NA,  0, NA, NA, NA, NA, NA, NA, NA, N~
-## $ borrow_formal_y      &lt;dbl&gt; 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0~
-## $ use_formal           &lt;chr&gt; &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;A B&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;~
-## $ use_formal_a         &lt;dbl+lbl&gt; NA, NA, NA,  1, NA, NA, NA, NA, NA, NA, NA, N~
-## $ use_formal_b         &lt;dbl+lbl&gt; NA, NA, NA,  1, NA, NA, NA, NA, NA, NA, NA, N~
-## $ use_formal_c         &lt;dbl+lbl&gt; NA, NA, NA,  0, NA, NA, NA, NA, NA, NA, NA, N~
-## $ use_formal_d         &lt;dbl+lbl&gt; NA, NA, NA,  0, NA, NA, NA, NA, NA, NA, NA, N~
-## $ use_formal_y         &lt;dbl+lbl&gt; NA, NA, NA,  0, NA, NA, NA, NA, NA, NA, NA, N~
-## $ loan_friend          &lt;dbl+lbl&gt; 4, 4, 1, 4, 2, 1, 4, 4, 3, 4, 4, 4, 4, 1, 1, ~
-## $ borrow_friend        &lt;chr&gt; &quot;&quot;, &quot;&quot;, &quot;A B&quot;, &quot;&quot;, &quot;A B&quot;, &quot;A B&quot;, &quot;&quot;, &quot;&quot;, &quot;A C&quot;, &quot;~
-## $ borrow_friend_a      &lt;dbl+lbl&gt; NA, NA,  1, NA,  1,  1, NA, NA,  1, NA, NA, N~
-## $ borrow_friend_b      &lt;dbl+lbl&gt; NA, NA,  1, NA,  1,  1, NA, NA,  0, NA, NA, N~
-## $ borrow_friend_c      &lt;dbl+lbl&gt; NA, NA,  0, NA,  0,  0, NA, NA,  1, NA, NA, N~
-## $ borrow_friend_d      &lt;dbl+lbl&gt; NA, NA,  0, NA,  0,  0, NA, NA,  0, NA, NA, N~
-## $ borrow_friend_y      &lt;dbl&gt; 0, 0, 1, 0, 1, 1, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0~
-## $ use_friend           &lt;chr&gt; &quot;&quot;, &quot;&quot;, &quot;A B&quot;, &quot;&quot;, &quot;A B&quot;, &quot;A B&quot;, &quot;&quot;, &quot;&quot;, &quot;A B C&quot;,~
-## $ use_friend_a         &lt;dbl+lbl&gt; NA, NA,  1, NA,  1,  1, NA, NA,  1, NA, NA, N~
-## $ use_friend_b         &lt;dbl+lbl&gt; NA, NA,  1, NA,  1,  1, NA, NA,  1, NA, NA, N~
-## $ use_friend_c         &lt;dbl+lbl&gt; NA, NA,  0, NA,  0,  0, NA, NA,  1, NA, NA, N~
-## $ use_friend_d         &lt;dbl+lbl&gt; NA, NA,  0, NA,  0,  0, NA, NA,  0, NA, NA, N~
-## $ use_friend_y         &lt;dbl+lbl&gt; NA, NA,  0, NA,  0,  0, NA, NA,  0, NA, NA, N~
-## $ loan_group           &lt;dbl+lbl&gt; 4, 4, 4, 1, 4, 4, 4, 4, 4, 4, 4, 4, 1, 4, 1, ~
-## $ borrow_group         &lt;chr&gt; &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;A B&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;~
-## $ borrow_group_a       &lt;dbl+lbl&gt; NA, NA, NA,  1, NA, NA, NA, NA, NA, NA, NA, N~
-## $ borrow_group_b       &lt;dbl+lbl&gt; NA, NA, NA,  1, NA, NA, NA, NA, NA, NA, NA, N~
-## $ borrow_group_c       &lt;dbl+lbl&gt; NA, NA, NA,  0, NA, NA, NA, NA, NA, NA, NA, N~
-## $ borrow_group_d       &lt;dbl+lbl&gt; NA, NA, NA,  0, NA, NA, NA, NA, NA, NA, NA, N~
-## $ borrow_group_y       &lt;dbl&gt; 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0~
-## $ use_group            &lt;chr&gt; &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;A B&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;~
-## $ use_group_a          &lt;dbl+lbl&gt; NA, NA, NA,  1, NA, NA, NA, NA, NA, NA, NA, N~
-## $ use_group_b          &lt;dbl+lbl&gt; NA, NA, NA,  1, NA, NA, NA, NA, NA, NA, NA, N~
-## $ use_group_c          &lt;dbl+lbl&gt; NA, NA, NA,  0, NA, NA, NA, NA, NA, NA, NA, N~
-## $ use_group_d          &lt;dbl+lbl&gt; NA, NA, NA,  0, NA, NA, NA, NA, NA, NA, NA, N~
-## $ use_group_y          &lt;dbl+lbl&gt; NA, NA, NA,  0, NA, NA, NA, NA, NA, NA, NA, N~
-## $ loan_sav             &lt;dbl+lbl&gt; 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, ~
-## $ borrow_sav           &lt;chr&gt; &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;~
-## $ borrow_sav_a         &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
-## $ borrow_sav_b         &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
-## $ borrow_sav_c         &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
-## $ borrow_sav_d         &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
-## $ borrow_sav_y         &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0~
-## $ use_sav              &lt;chr&gt; &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;~
-## $ use_sav_a            &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
-## $ use_sav_b            &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
-## $ use_sav_c            &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
-## $ use_sav_d            &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
-## $ use_sav_y            &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
-## $ group_ag             &lt;dbl+lbl&gt; 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, ~
-## $ member_ag            &lt;dbl+lbl&gt; NA,  1, NA,  1,  1,  1,  1, NA, NA, NA,  0,  ~
-## $ group_water          &lt;dbl+lbl&gt; 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, ~
-## $ member_water         &lt;dbl+lbl&gt; NA, NA, NA,  0, NA, NA, NA, NA,  1,  1, NA, N~
-## $ group_forest         &lt;dbl+lbl&gt; 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, ~
-## $ member_forest        &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA,  0, NA,  1, NA, N~
-## $ group_credit         &lt;dbl+lbl&gt; 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 1, ~
-## $ member_credit        &lt;dbl+lbl&gt; NA,  1,  0,  1, NA,  0,  1, NA, NA, NA, NA, N~
-## $ group_mutual         &lt;dbl+lbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ~
-## $ member_mutual        &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
-## $ group_trade          &lt;dbl+lbl&gt;     0,     0,     0,     0,     0,     0,    ~
-## $ member_trade         &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
-## $ group_civic          &lt;dbl+lbl&gt;     0,     0,     1,     0,     0,     0,    ~
-## $ member_civic         &lt;dbl+lbl&gt; NA, NA,  0, NA, NA, NA, NA, NA, NA, NA, NA, N~
-## $ group_local          &lt;dbl+lbl&gt; 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, ~
-## $ member_local         &lt;dbl+lbl&gt; NA,  0,  1,  1,  0,  0,  0,  0,  0,  1,  0,  ~
-## $ group_religious      &lt;dbl+lbl&gt; 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 0, 1, 0, 1, ~
-## $ member_religious     &lt;dbl+lbl&gt; NA,  0,  0,  1, NA,  1, NA,  1,  0,  1, NA, N~
-## $ group_women          &lt;dbl+lbl&gt;     0, NA(n),     1, NA(n),     1, NA(n), NA(~
-## $ member_women         &lt;dbl+lbl&gt;    NA,    NA,     1,    NA,     1,    NA,    ~
-## $ group_other          &lt;dbl+lbl&gt; 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ~
-## $ group_other_name_EN  &lt;chr&gt; &quot;&quot;, &quot;&quot;, &quot;\&quot;FORM PROD\&quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, ~
-## $ member_other         &lt;dbl+lbl&gt; NA, NA,  1, NA, NA, NA, NA, NA, NA, NA, NA, N~
-## $ group_other2         &lt;dbl+lbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ~
-## $ group_other_name2_EN &lt;chr&gt; &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;~
-## $ member_other2        &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
-## $ assist_ngo           &lt;dbl+lbl&gt; 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, ~
-## $ assist_usaid         &lt;dbl+lbl&gt; 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, ~
-## $ assist_train         &lt;dbl+lbl&gt; 0, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, ~
-## $ assist_fin           &lt;dbl+lbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ~
-## $ assist_fin2          &lt;chr&gt; &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;~
-## $ assist_fin2_a        &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
-## $ assist_fin2_b        &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
-## $ assist_fin2_c        &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
-## $ assist_fin2_d        &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
-## $ assist_money         &lt;chr&gt; &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;~
-## $ assist_money_a       &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
-## $ assist_money_b       &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
-## $ assist_money_c       &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
-## $ assist_money_d       &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
-## $ assist_emp           &lt;dbl+lbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ~
-## $ assist_invest        &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
-## $ assist_invest_amt    &lt;dbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
-## $ assist_nut           &lt;dbl+lbl&gt; 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, ~
-## $ assist_ag            &lt;dbl+lbl&gt; 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, ~
-## $ assist_health        &lt;dbl+lbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ~
-## $ assist_inputs        &lt;dbl+lbl&gt; 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 1, ~</code></pre>
+  select(head_sex, spouse_sex, mod_e_respondent_sex, loan_ngo:assist_inputs)%&gt;%
+  mutate(borrow_ngo_y = abs(replace_na(borrow_ngo_y, 1)-1),
+         use_ngo_y = abs(replace_na(use_ngo_y, 1)-1),
+         borrow_formal_y = abs(replace_na(borrow_formal_y, 1)-1), 
+         use_formal_y = abs(replace_na(use_formal_y, 1)-1),
+         borrow_informal_y = abs(replace_na(borrow_informal_y, 1)-1), 
+         use_informal_y = abs(replace_na(use_informal_y, 1)-1),
+         borrow_friend_y = abs(replace_na(borrow_friend_y, 1)-1), 
+         use_friend_y = abs(replace_na(use_friend_y, 1)-1),
+         borrow_group_y = abs(replace_na(borrow_group_y, 1)-1), 
+         use_group_y = abs(replace_na(use_group_y, 1)-1),
+         borrow_sav_y = abs(replace_na(borrow_sav_y, 1)-1),
+         use_sav_y = abs(replace_na(use_sav_y, 1)-1))%&gt;%
+  # repeat starting here
+  mutate(borrow_ngo_self = borrow_ngo_a*mod_e_respondent_sex, 
+         borrow_ngo_spouse = abs(((head_sex+spouse_sex+mod_e_respondent_sex)%%2)-2)*borrow_ngo_b, 
+         borrow_ngo_inside = borrow_ngo_c*3, 
+         borrow_ngo_outside = borrow_ngo_d*4, .before = use_ngo)%&gt;%
+  mutate(across(c(&quot;borrow_ngo_self&quot;, &quot;borrow_ngo_spouse&quot;, &quot;borrow_ngo_inside&quot;,
+        &quot;borrow_ngo_outside&quot;), as.character))%&gt;%
+  mutate_at(vars(borrow_ngo_self:borrow_ngo_outside), ~ str_replace(., &quot;1&quot;, &quot;M&quot;))%&gt;%
+  mutate_at(vars(borrow_ngo_self:borrow_ngo_outside), ~ str_replace(., &quot;2&quot;, &quot;F&quot;))%&gt;%
+  mutate_at(vars(borrow_ngo_self:borrow_ngo_outside), ~ str_replace(., &quot;3&quot;, &quot;I&quot;))%&gt;%
+  mutate_at(vars(borrow_ngo_self:borrow_ngo_outside), ~ str_replace(., &quot;4&quot;, &quot;O&quot;))%&gt;%
+  mutate_at(vars(borrow_ngo_self:borrow_ngo_outside), ~ str_replace(., &quot;0&quot;, &quot;&quot;))%&gt;%
+  unite(borrow_ngo_gender, borrow_ngo_self, borrow_ngo_spouse, borrow_ngo_inside,
+        borrow_ngo_outside, sep = &quot;&quot;, na.rm = TRUE)%&gt;%
+  mutate(borrow_ngo_gender = sapply(lapply(strsplit(borrow_ngo_gender, NULL),
+        sort), paste, collapse=&quot;&quot;))%&gt;%
+  # repeat starting here
+  mutate(use_ngo_self = use_ngo_a*mod_e_respondent_sex, 
+         use_ngo_spouse = abs(((head_sex+spouse_sex+mod_e_respondent_sex)%%2)-2)*use_ngo_b, 
+         use_ngo_inside = use_ngo_c*3, 
+         use_ngo_outside = use_ngo_d*4, .before = loan_informal)%&gt;%
+  mutate(across(c(&quot;use_ngo_self&quot;, &quot;use_ngo_spouse&quot;, &quot;use_ngo_inside&quot;,
+        &quot;use_ngo_outside&quot;), as.character))%&gt;%
+  mutate_at(vars(use_ngo_self:use_ngo_outside), ~ str_replace(., &quot;1&quot;, &quot;M&quot;))%&gt;%
+  mutate_at(vars(use_ngo_self:use_ngo_outside), ~ str_replace(., &quot;2&quot;, &quot;F&quot;))%&gt;%
+  mutate_at(vars(use_ngo_self:use_ngo_outside), ~ str_replace(., &quot;3&quot;, &quot;I&quot;))%&gt;%
+  mutate_at(vars(use_ngo_self:use_ngo_outside), ~ str_replace(., &quot;4&quot;, &quot;O&quot;))%&gt;%
+  mutate_at(vars(use_ngo_self:use_ngo_outside), ~ str_replace(., &quot;0&quot;, &quot;&quot;))%&gt;%
+  unite(use_ngo_gender, use_ngo_self, use_ngo_spouse, use_ngo_inside,
+        use_ngo_outside, sep = &quot;&quot;, na.rm = TRUE)%&gt;%
+  mutate(use_ngo_gender = sapply(lapply(strsplit(use_ngo_gender, NULL),
+        sort), paste, collapse=&quot;&quot;))%&gt;%
+  # repeat starting here
+  mutate(borrow_informal_self = borrow_informal_a*mod_e_respondent_sex, 
+         borrow_informal_spouse = abs(((head_sex+spouse_sex+mod_e_respondent_sex)%%2)-2)*borrow_informal_b, 
+         borrow_informal_inside = borrow_informal_c*3, 
+         borrow_informal_outside = borrow_informal_d*4, .before = use_informal)%&gt;%
+  mutate(across(c(&quot;borrow_informal_self&quot;, &quot;borrow_informal_spouse&quot;, &quot;borrow_informal_inside&quot;,
+        &quot;borrow_informal_outside&quot;), as.character))%&gt;%
+  mutate_at(vars(borrow_informal_self:borrow_informal_outside), ~ str_replace(., &quot;1&quot;, &quot;M&quot;))%&gt;%
+  mutate_at(vars(borrow_informal_self:borrow_informal_outside), ~ str_replace(., &quot;2&quot;, &quot;F&quot;))%&gt;%
+  mutate_at(vars(borrow_informal_self:borrow_informal_outside), ~ str_replace(., &quot;3&quot;, &quot;I&quot;))%&gt;%
+  mutate_at(vars(borrow_informal_self:borrow_informal_outside), ~ str_replace(., &quot;4&quot;, &quot;O&quot;))%&gt;%
+  mutate_at(vars(borrow_informal_self:borrow_informal_outside), ~ str_replace(., &quot;0&quot;, &quot;&quot;))%&gt;%
+  unite(borrow_informal_gender, borrow_informal_self, borrow_informal_spouse, borrow_informal_inside,
+        borrow_informal_outside, sep = &quot;&quot;, na.rm = TRUE)%&gt;%
+  mutate(borrow_informal_gender = sapply(lapply(strsplit(borrow_informal_gender, NULL),
+        sort), paste, collapse=&quot;&quot;))%&gt;%
+  # repeat starting here
+  mutate(use_informal_self = use_informal_a*mod_e_respondent_sex, 
+         use_informal_spouse = abs(((head_sex+spouse_sex+mod_e_respondent_sex)%%2)-2)*use_informal_b, 
+         use_informal_inside = use_informal_c*3, 
+         use_informal_outside = use_informal_d*4, .before = loan_formal)%&gt;%
+  mutate(across(c(&quot;use_informal_self&quot;, &quot;use_informal_spouse&quot;, &quot;use_informal_inside&quot;,
+        &quot;use_informal_outside&quot;), as.character))%&gt;%
+  mutate_at(vars(use_informal_self:use_informal_outside), ~ str_replace(., &quot;1&quot;, &quot;M&quot;))%&gt;%
+  mutate_at(vars(use_informal_self:use_informal_outside), ~ str_replace(., &quot;2&quot;, &quot;F&quot;))%&gt;%
+  mutate_at(vars(use_informal_self:use_informal_outside), ~ str_replace(., &quot;3&quot;, &quot;I&quot;))%&gt;%
+  mutate_at(vars(use_informal_self:use_informal_outside), ~ str_replace(., &quot;4&quot;, &quot;O&quot;))%&gt;%
+  mutate_at(vars(use_informal_self:use_informal_outside), ~ str_replace(., &quot;0&quot;, &quot;&quot;))%&gt;%
+  unite(use_informal_gender, use_informal_self, use_informal_spouse, use_informal_inside,
+        use_informal_outside, sep = &quot;&quot;, na.rm = TRUE)%&gt;%
+  mutate(use_informal_gender = sapply(lapply(strsplit(use_informal_gender, NULL),
+        sort), paste, collapse=&quot;&quot;))%&gt;%
+  # repeat starting here
+  mutate(borrow_formal_self = borrow_formal_a*mod_e_respondent_sex, 
+         borrow_formal_spouse = abs(((head_sex+spouse_sex+mod_e_respondent_sex)%%2)-2)*borrow_formal_b, 
+         borrow_formal_inside = borrow_formal_c*3, 
+         borrow_formal_outside = borrow_formal_d*4, .before = use_formal)%&gt;%
+  mutate(across(c(&quot;borrow_formal_self&quot;, &quot;borrow_formal_spouse&quot;, &quot;borrow_formal_inside&quot;,
+        &quot;borrow_formal_outside&quot;), as.character))%&gt;%
+  mutate_at(vars(borrow_formal_self:borrow_formal_outside), ~ str_replace(., &quot;1&quot;, &quot;M&quot;))%&gt;%
+  mutate_at(vars(borrow_formal_self:borrow_formal_outside), ~ str_replace(., &quot;2&quot;, &quot;F&quot;))%&gt;%
+  mutate_at(vars(borrow_formal_self:borrow_formal_outside), ~ str_replace(., &quot;3&quot;, &quot;I&quot;))%&gt;%
+  mutate_at(vars(borrow_formal_self:borrow_formal_outside), ~ str_replace(., &quot;4&quot;, &quot;O&quot;))%&gt;%
+  mutate_at(vars(borrow_formal_self:borrow_formal_outside), ~ str_replace(., &quot;0&quot;, &quot;&quot;))%&gt;%
+  unite(borrow_formal_gender, borrow_formal_self, borrow_formal_spouse, borrow_formal_inside,
+        borrow_formal_outside, sep = &quot;&quot;, na.rm = TRUE)%&gt;%
+  mutate(borrow_formal_gender = sapply(lapply(strsplit(borrow_formal_gender, NULL),
+        sort), paste, collapse=&quot;&quot;))%&gt;%
+  # repeat starting here
+  mutate(use_formal_self = use_formal_a*mod_e_respondent_sex, 
+         use_formal_spouse = abs(((head_sex+spouse_sex+mod_e_respondent_sex)%%2)-2)*use_formal_b, 
+         use_formal_inside = use_formal_c*3, 
+         use_formal_outside = use_formal_d*4, .before = loan_group)%&gt;%
+  mutate(across(c(&quot;use_formal_self&quot;, &quot;use_formal_spouse&quot;, &quot;use_formal_inside&quot;,
+        &quot;use_formal_outside&quot;), as.character))%&gt;%
+  mutate_at(vars(use_formal_self:use_formal_outside), ~ str_replace(., &quot;1&quot;, &quot;M&quot;))%&gt;%
+  mutate_at(vars(use_formal_self:use_formal_outside), ~ str_replace(., &quot;2&quot;, &quot;F&quot;))%&gt;%
+  mutate_at(vars(use_formal_self:use_formal_outside), ~ str_replace(., &quot;3&quot;, &quot;I&quot;))%&gt;%
+  mutate_at(vars(use_formal_self:use_formal_outside), ~ str_replace(., &quot;4&quot;, &quot;O&quot;))%&gt;%
+  mutate_at(vars(use_formal_self:use_formal_outside), ~ str_replace(., &quot;0&quot;, &quot;&quot;))%&gt;%
+  unite(use_formal_gender, use_formal_self, use_formal_spouse, use_formal_inside,
+        use_formal_outside, sep = &quot;&quot;, na.rm = TRUE)%&gt;%
+  mutate(use_formal_gender = sapply(lapply(strsplit(use_formal_gender, NULL),
+        sort), paste, collapse=&quot;&quot;))%&gt;%
+  # repeat starting here
+  mutate(borrow_group_self = borrow_group_a*mod_e_respondent_sex, 
+         borrow_group_spouse = abs(((head_sex+spouse_sex+mod_e_respondent_sex)%%2)-2)*borrow_group_b, 
+         borrow_group_inside = borrow_group_c*3, 
+         borrow_group_outside = borrow_group_d*4, .before = use_group)%&gt;%
+  mutate(across(c(&quot;borrow_group_self&quot;, &quot;borrow_group_spouse&quot;, &quot;borrow_group_inside&quot;,
+        &quot;borrow_group_outside&quot;), as.character))%&gt;%
+  mutate_at(vars(borrow_group_self:borrow_group_outside), ~ str_replace(., &quot;1&quot;, &quot;M&quot;))%&gt;%
+  mutate_at(vars(borrow_group_self:borrow_group_outside), ~ str_replace(., &quot;2&quot;, &quot;F&quot;))%&gt;%
+  mutate_at(vars(borrow_group_self:borrow_group_outside), ~ str_replace(., &quot;3&quot;, &quot;I&quot;))%&gt;%
+  mutate_at(vars(borrow_group_self:borrow_group_outside), ~ str_replace(., &quot;4&quot;, &quot;O&quot;))%&gt;%
+  mutate_at(vars(borrow_group_self:borrow_group_outside), ~ str_replace(., &quot;0&quot;, &quot;&quot;))%&gt;%
+  unite(borrow_group_gender, borrow_group_self, borrow_group_spouse, borrow_group_inside,
+        borrow_group_outside, sep = &quot;&quot;, na.rm = TRUE)%&gt;%
+  mutate(borrow_group_gender = sapply(lapply(strsplit(borrow_group_gender, NULL),
+        sort), paste, collapse=&quot;&quot;))%&gt;%
+  # repeat starting here
+  mutate(use_group_self = use_group_a*mod_e_respondent_sex, 
+         use_group_spouse = abs(((head_sex+spouse_sex+mod_e_respondent_sex)%%2)-2)*use_group_b, 
+         use_group_inside = use_group_c*3, 
+         use_group_outside = use_group_d*4, .before = loan_sav)%&gt;%
+  mutate(across(c(&quot;use_group_self&quot;, &quot;use_group_spouse&quot;, &quot;use_group_inside&quot;,
+        &quot;use_group_outside&quot;), as.character))%&gt;%
+  mutate_at(vars(use_group_self:use_group_outside), ~ str_replace(., &quot;1&quot;, &quot;M&quot;))%&gt;%
+  mutate_at(vars(use_group_self:use_group_outside), ~ str_replace(., &quot;2&quot;, &quot;F&quot;))%&gt;%
+  mutate_at(vars(use_group_self:use_group_outside), ~ str_replace(., &quot;3&quot;, &quot;I&quot;))%&gt;%
+  mutate_at(vars(use_group_self:use_group_outside), ~ str_replace(., &quot;4&quot;, &quot;O&quot;))%&gt;%
+  mutate_at(vars(use_group_self:use_group_outside), ~ str_replace(., &quot;0&quot;, &quot;&quot;))%&gt;%
+  unite(use_group_gender, use_group_self, use_group_spouse, use_group_inside,
+        use_group_outside, sep = &quot;&quot;, na.rm = TRUE)%&gt;%
+  mutate(use_group_gender = sapply(lapply(strsplit(use_group_gender, NULL),
+        sort), paste, collapse=&quot;&quot;))%&gt;%
+  # repeat starting here
+  mutate(borrow_sav_self = borrow_sav_a*mod_e_respondent_sex, 
+         borrow_sav_spouse = abs(((head_sex+spouse_sex+mod_e_respondent_sex)%%2)-2)*borrow_sav_b, 
+         borrow_sav_inside = borrow_sav_c*3, 
+         borrow_sav_outside = borrow_sav_d*4, .before = loan_sav)%&gt;%
+  mutate(across(c(&quot;borrow_sav_self&quot;, &quot;borrow_sav_spouse&quot;, &quot;borrow_sav_inside&quot;,
+        &quot;borrow_sav_outside&quot;), as.character))%&gt;%
+  mutate_at(vars(borrow_sav_self:borrow_sav_outside), ~ str_replace(., &quot;1&quot;, &quot;M&quot;))%&gt;%
+  mutate_at(vars(borrow_sav_self:borrow_sav_outside), ~ str_replace(., &quot;2&quot;, &quot;F&quot;))%&gt;%
+  mutate_at(vars(borrow_sav_self:borrow_sav_outside), ~ str_replace(., &quot;3&quot;, &quot;I&quot;))%&gt;%
+  mutate_at(vars(borrow_sav_self:borrow_sav_outside), ~ str_replace(., &quot;4&quot;, &quot;O&quot;))%&gt;%
+  mutate_at(vars(borrow_sav_self:borrow_sav_outside), ~ str_replace(., &quot;0&quot;, &quot;&quot;))%&gt;%
+  unite(borrow_sav_gender, borrow_sav_self, borrow_sav_spouse, borrow_sav_inside,
+        borrow_sav_outside, sep = &quot;&quot;, na.rm = TRUE)%&gt;%
+  mutate(borrow_sav_gender = sapply(lapply(strsplit(borrow_sav_gender, NULL),
+        sort), paste, collapse=&quot;&quot;))%&gt;%
+  # repeat starting here
+  mutate(use_sav_self = use_sav_a*mod_e_respondent_sex, 
+         use_sav_spouse = abs(((head_sex+spouse_sex+mod_e_respondent_sex)%%2)-2)*use_sav_b, 
+         use_sav_inside = use_sav_c*3, 
+         use_sav_outside = use_sav_d*4, .before = group_ag)%&gt;%
+  mutate(across(c(&quot;use_sav_self&quot;, &quot;use_sav_spouse&quot;, &quot;use_sav_inside&quot;,
+        &quot;use_sav_outside&quot;), as.character))%&gt;%
+  mutate_at(vars(use_sav_self:use_sav_outside), ~ str_replace(., &quot;1&quot;, &quot;M&quot;))%&gt;%
+  mutate_at(vars(use_sav_self:use_sav_outside), ~ str_replace(., &quot;2&quot;, &quot;F&quot;))%&gt;%
+  mutate_at(vars(use_sav_self:use_sav_outside), ~ str_replace(., &quot;3&quot;, &quot;I&quot;))%&gt;%
+  mutate_at(vars(use_sav_self:use_sav_outside), ~ str_replace(., &quot;4&quot;, &quot;O&quot;))%&gt;%
+  mutate_at(vars(use_sav_self:use_sav_outside), ~ str_replace(., &quot;0&quot;, &quot;&quot;))%&gt;%
+  unite(use_sav_gender, use_sav_self, use_sav_spouse, use_sav_inside,
+        use_sav_outside, sep = &quot;&quot;, na.rm = TRUE)%&gt;%
+  mutate(use_sav_gender = sapply(lapply(strsplit(use_sav_gender, NULL),
+        sort), paste, collapse=&quot;&quot;))
+ view(credit_gender_b)
+ credit_gender_narrow &lt;- credit_gender_b %&gt;%
+   select(head_sex:mod_e_respondent_sex, ends_with(&quot;gender&quot;), ends_with(&quot;_y&quot;), group_ag:assist_inputs)
+ view(credit_gender_narrow)
+ 
+ credit_gender_consolidated &lt;- credit_gender_narrow%&gt;%
+   unite(decion_makers, ends_with(&quot;gender&quot;), sep=&quot;&quot;)%&gt;%
+   view()</code></pre>
 </div>
 </div>
 <div id="miscellaneous-planning---its-old-pre-analysis-so-dont-worry-about-this-part" class="section level2">
