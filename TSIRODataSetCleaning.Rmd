@@ -216,13 +216,190 @@ credit_gender <- credit %>%
 #changes borrow_(institution)_y to say whether they did (1) or didn't (0) borrow from the institution.
   mutate(borrow_ngo_y = abs(replace_na(borrow_ngo_y, 1)-1), borrow_formal_y = abs(replace_na(borrow_formal_y, 1)-1), borrow_informal_y = abs(replace_na(borrow_informal_y, 1)-1), borrow_friend_y = abs(replace_na(borrow_friend_y, 1)-1), borrow_group_y = abs(replace_na(borrow_group_y, 1)-1), borrow_sav_y = abs(replace_na(borrow_sav_y, 1)-1))
 
+#get ready for the world's longest pipe - I spent two days trying to find a way
+#to avoid this, to no avail.
 credit_gender_b <- tsiro_raw_data%>%
-  select(mod_e_respondent_sex, loan_ngo:assist_inputs)%>%
-  mutate(borrow_ngo_y = abs(replace_na(borrow_ngo_y, 1)-1), borrow_formal_y = abs(replace_na(borrow_formal_y, 1)-1), borrow_informal_y = abs(replace_na(borrow_informal_y, 1)-1), borrow_friend_y = abs(replace_na(borrow_friend_y, 1)-1), borrow_group_y = abs(replace_na(borrow_group_y, 1)-1), borrow_sav_y = abs(replace_na(borrow_sav_y, 1)-1))#%>%
-#  mutate(spouse_of_respondent = )
-#  mutate(borrow_ngo_self = borrow_ngo_a*mod_e_respondent_sex, borrow_ngo_spouse = borrow_ngo_b*)
-glimpse(credit_gender_b)
-
+  select(head_sex, spouse_sex, mod_e_respondent_sex, loan_ngo:assist_inputs)%>%
+  mutate(borrow_ngo_y = abs(replace_na(borrow_ngo_y, 1)-1),
+         use_ngo_y = abs(replace_na(use_ngo_y, 1)-1),
+         borrow_formal_y = abs(replace_na(borrow_formal_y, 1)-1), 
+         use_formal_y = abs(replace_na(use_formal_y, 1)-1),
+         borrow_informal_y = abs(replace_na(borrow_informal_y, 1)-1), 
+         use_informal_y = abs(replace_na(use_informal_y, 1)-1),
+         borrow_friend_y = abs(replace_na(borrow_friend_y, 1)-1), 
+         use_friend_y = abs(replace_na(use_friend_y, 1)-1),
+         borrow_group_y = abs(replace_na(borrow_group_y, 1)-1), 
+         use_group_y = abs(replace_na(use_group_y, 1)-1),
+         borrow_sav_y = abs(replace_na(borrow_sav_y, 1)-1),
+         use_sav_y = abs(replace_na(use_sav_y, 1)-1))%>%
+  # repeat starting here
+  mutate(borrow_ngo_self = borrow_ngo_a*mod_e_respondent_sex, 
+         borrow_ngo_spouse = abs(((head_sex+spouse_sex+mod_e_respondent_sex)%%2)-2)*borrow_ngo_b, 
+         borrow_ngo_inside = borrow_ngo_c*3, 
+         borrow_ngo_outside = borrow_ngo_d*4, .before = use_ngo)%>%
+  mutate(across(c("borrow_ngo_self", "borrow_ngo_spouse", "borrow_ngo_inside",
+        "borrow_ngo_outside"), as.character))%>%
+  mutate_at(vars(borrow_ngo_self:borrow_ngo_outside), ~ str_replace(., "1", "M"))%>%
+  mutate_at(vars(borrow_ngo_self:borrow_ngo_outside), ~ str_replace(., "2", "F"))%>%
+  mutate_at(vars(borrow_ngo_self:borrow_ngo_outside), ~ str_replace(., "3", "I"))%>%
+  mutate_at(vars(borrow_ngo_self:borrow_ngo_outside), ~ str_replace(., "4", "O"))%>%
+  mutate_at(vars(borrow_ngo_self:borrow_ngo_outside), ~ str_replace(., "0", ""))%>%
+  unite(borrow_ngo_gender, borrow_ngo_self, borrow_ngo_spouse, borrow_ngo_inside,
+        borrow_ngo_outside, sep = "", na.rm = TRUE)%>%
+  mutate(borrow_ngo_gender = sapply(lapply(strsplit(borrow_ngo_gender, NULL),
+        sort), paste, collapse=""))%>%
+  # repeat starting here
+  mutate(use_ngo_self = use_ngo_a*mod_e_respondent_sex, 
+         use_ngo_spouse = abs(((head_sex+spouse_sex+mod_e_respondent_sex)%%2)-2)*use_ngo_b, 
+         use_ngo_inside = use_ngo_c*3, 
+         use_ngo_outside = use_ngo_d*4, .before = loan_informal)%>%
+  mutate(across(c("use_ngo_self", "use_ngo_spouse", "use_ngo_inside",
+        "use_ngo_outside"), as.character))%>%
+  mutate_at(vars(use_ngo_self:use_ngo_outside), ~ str_replace(., "1", "M"))%>%
+  mutate_at(vars(use_ngo_self:use_ngo_outside), ~ str_replace(., "2", "F"))%>%
+  mutate_at(vars(use_ngo_self:use_ngo_outside), ~ str_replace(., "3", "I"))%>%
+  mutate_at(vars(use_ngo_self:use_ngo_outside), ~ str_replace(., "4", "O"))%>%
+  mutate_at(vars(use_ngo_self:use_ngo_outside), ~ str_replace(., "0", ""))%>%
+  unite(use_ngo_gender, use_ngo_self, use_ngo_spouse, use_ngo_inside,
+        use_ngo_outside, sep = "", na.rm = TRUE)%>%
+  mutate(use_ngo_gender = sapply(lapply(strsplit(use_ngo_gender, NULL),
+        sort), paste, collapse=""))%>%
+  # repeat starting here
+  mutate(borrow_informal_self = borrow_informal_a*mod_e_respondent_sex, 
+         borrow_informal_spouse = abs(((head_sex+spouse_sex+mod_e_respondent_sex)%%2)-2)*borrow_informal_b, 
+         borrow_informal_inside = borrow_informal_c*3, 
+         borrow_informal_outside = borrow_informal_d*4, .before = use_informal)%>%
+  mutate(across(c("borrow_informal_self", "borrow_informal_spouse", "borrow_informal_inside",
+        "borrow_informal_outside"), as.character))%>%
+  mutate_at(vars(borrow_informal_self:borrow_informal_outside), ~ str_replace(., "1", "M"))%>%
+  mutate_at(vars(borrow_informal_self:borrow_informal_outside), ~ str_replace(., "2", "F"))%>%
+  mutate_at(vars(borrow_informal_self:borrow_informal_outside), ~ str_replace(., "3", "I"))%>%
+  mutate_at(vars(borrow_informal_self:borrow_informal_outside), ~ str_replace(., "4", "O"))%>%
+  mutate_at(vars(borrow_informal_self:borrow_informal_outside), ~ str_replace(., "0", ""))%>%
+  unite(borrow_informal_gender, borrow_informal_self, borrow_informal_spouse, borrow_informal_inside,
+        borrow_informal_outside, sep = "", na.rm = TRUE)%>%
+  mutate(borrow_informal_gender = sapply(lapply(strsplit(borrow_informal_gender, NULL),
+        sort), paste, collapse=""))%>%
+  # repeat starting here
+  mutate(use_informal_self = use_informal_a*mod_e_respondent_sex, 
+         use_informal_spouse = abs(((head_sex+spouse_sex+mod_e_respondent_sex)%%2)-2)*use_informal_b, 
+         use_informal_inside = use_informal_c*3, 
+         use_informal_outside = use_informal_d*4, .before = loan_formal)%>%
+  mutate(across(c("use_informal_self", "use_informal_spouse", "use_informal_inside",
+        "use_informal_outside"), as.character))%>%
+  mutate_at(vars(use_informal_self:use_informal_outside), ~ str_replace(., "1", "M"))%>%
+  mutate_at(vars(use_informal_self:use_informal_outside), ~ str_replace(., "2", "F"))%>%
+  mutate_at(vars(use_informal_self:use_informal_outside), ~ str_replace(., "3", "I"))%>%
+  mutate_at(vars(use_informal_self:use_informal_outside), ~ str_replace(., "4", "O"))%>%
+  mutate_at(vars(use_informal_self:use_informal_outside), ~ str_replace(., "0", ""))%>%
+  unite(use_informal_gender, use_informal_self, use_informal_spouse, use_informal_inside,
+        use_informal_outside, sep = "", na.rm = TRUE)%>%
+  mutate(use_informal_gender = sapply(lapply(strsplit(use_informal_gender, NULL),
+        sort), paste, collapse=""))%>%
+  # repeat starting here
+  mutate(borrow_formal_self = borrow_formal_a*mod_e_respondent_sex, 
+         borrow_formal_spouse = abs(((head_sex+spouse_sex+mod_e_respondent_sex)%%2)-2)*borrow_formal_b, 
+         borrow_formal_inside = borrow_formal_c*3, 
+         borrow_formal_outside = borrow_formal_d*4, .before = use_formal)%>%
+  mutate(across(c("borrow_formal_self", "borrow_formal_spouse", "borrow_formal_inside",
+        "borrow_formal_outside"), as.character))%>%
+  mutate_at(vars(borrow_formal_self:borrow_formal_outside), ~ str_replace(., "1", "M"))%>%
+  mutate_at(vars(borrow_formal_self:borrow_formal_outside), ~ str_replace(., "2", "F"))%>%
+  mutate_at(vars(borrow_formal_self:borrow_formal_outside), ~ str_replace(., "3", "I"))%>%
+  mutate_at(vars(borrow_formal_self:borrow_formal_outside), ~ str_replace(., "4", "O"))%>%
+  mutate_at(vars(borrow_formal_self:borrow_formal_outside), ~ str_replace(., "0", ""))%>%
+  unite(borrow_formal_gender, borrow_formal_self, borrow_formal_spouse, borrow_formal_inside,
+        borrow_formal_outside, sep = "", na.rm = TRUE)%>%
+  mutate(borrow_formal_gender = sapply(lapply(strsplit(borrow_formal_gender, NULL),
+        sort), paste, collapse=""))%>%
+  # repeat starting here
+  mutate(use_formal_self = use_formal_a*mod_e_respondent_sex, 
+         use_formal_spouse = abs(((head_sex+spouse_sex+mod_e_respondent_sex)%%2)-2)*use_formal_b, 
+         use_formal_inside = use_formal_c*3, 
+         use_formal_outside = use_formal_d*4, .before = loan_group)%>%
+  mutate(across(c("use_formal_self", "use_formal_spouse", "use_formal_inside",
+        "use_formal_outside"), as.character))%>%
+  mutate_at(vars(use_formal_self:use_formal_outside), ~ str_replace(., "1", "M"))%>%
+  mutate_at(vars(use_formal_self:use_formal_outside), ~ str_replace(., "2", "F"))%>%
+  mutate_at(vars(use_formal_self:use_formal_outside), ~ str_replace(., "3", "I"))%>%
+  mutate_at(vars(use_formal_self:use_formal_outside), ~ str_replace(., "4", "O"))%>%
+  mutate_at(vars(use_formal_self:use_formal_outside), ~ str_replace(., "0", ""))%>%
+  unite(use_formal_gender, use_formal_self, use_formal_spouse, use_formal_inside,
+        use_formal_outside, sep = "", na.rm = TRUE)%>%
+  mutate(use_formal_gender = sapply(lapply(strsplit(use_formal_gender, NULL),
+        sort), paste, collapse=""))%>%
+  # repeat starting here
+  mutate(borrow_group_self = borrow_group_a*mod_e_respondent_sex, 
+         borrow_group_spouse = abs(((head_sex+spouse_sex+mod_e_respondent_sex)%%2)-2)*borrow_group_b, 
+         borrow_group_inside = borrow_group_c*3, 
+         borrow_group_outside = borrow_group_d*4, .before = use_group)%>%
+  mutate(across(c("borrow_group_self", "borrow_group_spouse", "borrow_group_inside",
+        "borrow_group_outside"), as.character))%>%
+  mutate_at(vars(borrow_group_self:borrow_group_outside), ~ str_replace(., "1", "M"))%>%
+  mutate_at(vars(borrow_group_self:borrow_group_outside), ~ str_replace(., "2", "F"))%>%
+  mutate_at(vars(borrow_group_self:borrow_group_outside), ~ str_replace(., "3", "I"))%>%
+  mutate_at(vars(borrow_group_self:borrow_group_outside), ~ str_replace(., "4", "O"))%>%
+  mutate_at(vars(borrow_group_self:borrow_group_outside), ~ str_replace(., "0", ""))%>%
+  unite(borrow_group_gender, borrow_group_self, borrow_group_spouse, borrow_group_inside,
+        borrow_group_outside, sep = "", na.rm = TRUE)%>%
+  mutate(borrow_group_gender = sapply(lapply(strsplit(borrow_group_gender, NULL),
+        sort), paste, collapse=""))%>%
+  # repeat starting here
+  mutate(use_group_self = use_group_a*mod_e_respondent_sex, 
+         use_group_spouse = abs(((head_sex+spouse_sex+mod_e_respondent_sex)%%2)-2)*use_group_b, 
+         use_group_inside = use_group_c*3, 
+         use_group_outside = use_group_d*4, .before = loan_sav)%>%
+  mutate(across(c("use_group_self", "use_group_spouse", "use_group_inside",
+        "use_group_outside"), as.character))%>%
+  mutate_at(vars(use_group_self:use_group_outside), ~ str_replace(., "1", "M"))%>%
+  mutate_at(vars(use_group_self:use_group_outside), ~ str_replace(., "2", "F"))%>%
+  mutate_at(vars(use_group_self:use_group_outside), ~ str_replace(., "3", "I"))%>%
+  mutate_at(vars(use_group_self:use_group_outside), ~ str_replace(., "4", "O"))%>%
+  mutate_at(vars(use_group_self:use_group_outside), ~ str_replace(., "0", ""))%>%
+  unite(use_group_gender, use_group_self, use_group_spouse, use_group_inside,
+        use_group_outside, sep = "", na.rm = TRUE)%>%
+  mutate(use_group_gender = sapply(lapply(strsplit(use_group_gender, NULL),
+        sort), paste, collapse=""))%>%
+  # repeat starting here
+  mutate(borrow_sav_self = borrow_sav_a*mod_e_respondent_sex, 
+         borrow_sav_spouse = abs(((head_sex+spouse_sex+mod_e_respondent_sex)%%2)-2)*borrow_sav_b, 
+         borrow_sav_inside = borrow_sav_c*3, 
+         borrow_sav_outside = borrow_sav_d*4, .before = loan_sav)%>%
+  mutate(across(c("borrow_sav_self", "borrow_sav_spouse", "borrow_sav_inside",
+        "borrow_sav_outside"), as.character))%>%
+  mutate_at(vars(borrow_sav_self:borrow_sav_outside), ~ str_replace(., "1", "M"))%>%
+  mutate_at(vars(borrow_sav_self:borrow_sav_outside), ~ str_replace(., "2", "F"))%>%
+  mutate_at(vars(borrow_sav_self:borrow_sav_outside), ~ str_replace(., "3", "I"))%>%
+  mutate_at(vars(borrow_sav_self:borrow_sav_outside), ~ str_replace(., "4", "O"))%>%
+  mutate_at(vars(borrow_sav_self:borrow_sav_outside), ~ str_replace(., "0", ""))%>%
+  unite(borrow_sav_gender, borrow_sav_self, borrow_sav_spouse, borrow_sav_inside,
+        borrow_sav_outside, sep = "", na.rm = TRUE)%>%
+  mutate(borrow_sav_gender = sapply(lapply(strsplit(borrow_sav_gender, NULL),
+        sort), paste, collapse=""))%>%
+  # repeat starting here
+  mutate(use_sav_self = use_sav_a*mod_e_respondent_sex, 
+         use_sav_spouse = abs(((head_sex+spouse_sex+mod_e_respondent_sex)%%2)-2)*use_sav_b, 
+         use_sav_inside = use_sav_c*3, 
+         use_sav_outside = use_sav_d*4, .before = group_ag)%>%
+  mutate(across(c("use_sav_self", "use_sav_spouse", "use_sav_inside",
+        "use_sav_outside"), as.character))%>%
+  mutate_at(vars(use_sav_self:use_sav_outside), ~ str_replace(., "1", "M"))%>%
+  mutate_at(vars(use_sav_self:use_sav_outside), ~ str_replace(., "2", "F"))%>%
+  mutate_at(vars(use_sav_self:use_sav_outside), ~ str_replace(., "3", "I"))%>%
+  mutate_at(vars(use_sav_self:use_sav_outside), ~ str_replace(., "4", "O"))%>%
+  mutate_at(vars(use_sav_self:use_sav_outside), ~ str_replace(., "0", ""))%>%
+  unite(use_sav_gender, use_sav_self, use_sav_spouse, use_sav_inside,
+        use_sav_outside, sep = "", na.rm = TRUE)%>%
+  mutate(use_sav_gender = sapply(lapply(strsplit(use_sav_gender, NULL),
+        sort), paste, collapse=""))
+ view(credit_gender_b)
+ credit_gender_narrow <- credit_gender_b %>%
+   select(head_sex:mod_e_respondent_sex, ends_with("gender"), ends_with("_y"), group_ag:assist_inputs)
+ view(credit_gender_narrow)
+ 
+ credit_gender_consolidated <- credit_gender_narrow%>%
+   unite(decion_makers, ends_with("gender"), sep="")%>%
+   view()
 ```
 
 
