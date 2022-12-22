@@ -545,6 +545,7 @@ credit_gender &lt;- credit %&gt;%
 #get ready for the world&#39;s longest pipe - I spent two days trying to find a way
 #to avoid this, to no avail.
 credit_gender_b &lt;- tsiro_raw_data%&gt;%
+<<<<<<< HEAD
   select(head_sex, spouse_sex, mod_e_respondent_sex, loan_ngo:assist_inputs)%&gt;%
   mutate(borrow_ngo_y = abs(replace_na(borrow_ngo_y, 1)-1),
          use_ngo_y = abs(replace_na(use_ngo_y, 1)-1),
@@ -726,6 +727,141 @@ credit_gender_b &lt;- tsiro_raw_data%&gt;%
  credit_gender_consolidated &lt;- credit_gender_narrow%&gt;%
    unite(decion_makers, ends_with(&quot;gender&quot;), sep=&quot;&quot;)%&gt;%
    view()</code></pre>
+=======
+  select(mod_e_respondent_sex, loan_ngo:assist_inputs)%&gt;%
+  mutate(borrow_ngo_y = abs(replace_na(borrow_ngo_y, 1)-1), borrow_formal_y = abs(replace_na(borrow_formal_y, 1)-1), borrow_informal_y = abs(replace_na(borrow_informal_y, 1)-1), borrow_friend_y = abs(replace_na(borrow_friend_y, 1)-1), borrow_group_y = abs(replace_na(borrow_group_y, 1)-1), borrow_sav_y = abs(replace_na(borrow_sav_y, 1)-1))#%&gt;%
+#  mutate(spouse_of_respondent = )
+#  mutate(borrow_ngo_self = borrow_ngo_a*mod_e_respondent_sex, borrow_ngo_spouse = borrow_ngo_b*)
+glimpse(credit_gender_b)</code></pre>
+<pre><code>## Rows: 755
+## Columns: 126
+## $ mod_e_respondent_sex &lt;dbl&gt; 1, 1, 2, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 2, 1, 1, 1~
+## $ loan_ngo             &lt;dbl+lbl&gt; 4, 4, 4, 4, 1, 4, 4, 4, 4, 4, 4, 4, 1, 4, 4, ~
+## $ borrow_ngo           &lt;chr&gt; &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;A B&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;~
+## $ borrow_ngo_a         &lt;dbl+lbl&gt; NA, NA, NA, NA,  1, NA, NA, NA, NA, NA, NA, N~
+## $ borrow_ngo_b         &lt;dbl+lbl&gt; NA, NA, NA, NA,  1, NA, NA, NA, NA, NA, NA, N~
+## $ borrow_ngo_c         &lt;dbl+lbl&gt; NA, NA, NA, NA,  0, NA, NA, NA, NA, NA, NA, N~
+## $ borrow_ngo_d         &lt;dbl+lbl&gt; NA, NA, NA, NA,  0, NA, NA, NA, NA, NA, NA, N~
+## $ borrow_ngo_y         &lt;dbl&gt; 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0~
+## $ use_ngo              &lt;chr&gt; &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;A B&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;~
+## $ use_ngo_a            &lt;dbl+lbl&gt; NA, NA, NA, NA,  1, NA, NA, NA, NA, NA, NA, N~
+## $ use_ngo_b            &lt;dbl+lbl&gt; NA, NA, NA, NA,  1, NA, NA, NA, NA, NA, NA, N~
+## $ use_ngo_c            &lt;dbl+lbl&gt; NA, NA, NA, NA,  0, NA, NA, NA, NA, NA, NA, N~
+## $ use_ngo_d            &lt;dbl+lbl&gt; NA, NA, NA, NA,  0, NA, NA, NA, NA, NA, NA, N~
+## $ use_ngo_y            &lt;dbl+lbl&gt; NA, NA, NA, NA,  0, NA, NA, NA, NA, NA, NA, N~
+## $ loan_informal        &lt;dbl+lbl&gt; 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, ~
+## $ borrow_informal      &lt;chr&gt; &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;~
+## $ borrow_informal_a    &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
+## $ borrow_informal_b    &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
+## $ borrow_informal_c    &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
+## $ borrow_informal_d    &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
+## $ borrow_informal_y    &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0~
+## $ use_informal         &lt;chr&gt; &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;~
+## $ use_informal_a       &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
+## $ use_informal_b       &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
+## $ use_informal_c       &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
+## $ use_informal_d       &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
+## $ use_informal_y       &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
+## $ loan_formal          &lt;dbl+lbl&gt; 4, 4, 4, 1, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, ~
+## $ borrow_formal        &lt;chr&gt; &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;A B&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;~
+## $ borrow_formal_a      &lt;dbl+lbl&gt; NA, NA, NA,  1, NA, NA, NA, NA, NA, NA, NA, N~
+## $ borrow_formal_b      &lt;dbl+lbl&gt; NA, NA, NA,  1, NA, NA, NA, NA, NA, NA, NA, N~
+## $ borrow_formal_c      &lt;dbl+lbl&gt; NA, NA, NA,  0, NA, NA, NA, NA, NA, NA, NA, N~
+## $ borrow_formal_d      &lt;dbl+lbl&gt; NA, NA, NA,  0, NA, NA, NA, NA, NA, NA, NA, N~
+## $ borrow_formal_y      &lt;dbl&gt; 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0~
+## $ use_formal           &lt;chr&gt; &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;A B&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;~
+## $ use_formal_a         &lt;dbl+lbl&gt; NA, NA, NA,  1, NA, NA, NA, NA, NA, NA, NA, N~
+## $ use_formal_b         &lt;dbl+lbl&gt; NA, NA, NA,  1, NA, NA, NA, NA, NA, NA, NA, N~
+## $ use_formal_c         &lt;dbl+lbl&gt; NA, NA, NA,  0, NA, NA, NA, NA, NA, NA, NA, N~
+## $ use_formal_d         &lt;dbl+lbl&gt; NA, NA, NA,  0, NA, NA, NA, NA, NA, NA, NA, N~
+## $ use_formal_y         &lt;dbl+lbl&gt; NA, NA, NA,  0, NA, NA, NA, NA, NA, NA, NA, N~
+## $ loan_friend          &lt;dbl+lbl&gt; 4, 4, 1, 4, 2, 1, 4, 4, 3, 4, 4, 4, 4, 1, 1, ~
+## $ borrow_friend        &lt;chr&gt; &quot;&quot;, &quot;&quot;, &quot;A B&quot;, &quot;&quot;, &quot;A B&quot;, &quot;A B&quot;, &quot;&quot;, &quot;&quot;, &quot;A C&quot;, &quot;~
+## $ borrow_friend_a      &lt;dbl+lbl&gt; NA, NA,  1, NA,  1,  1, NA, NA,  1, NA, NA, N~
+## $ borrow_friend_b      &lt;dbl+lbl&gt; NA, NA,  1, NA,  1,  1, NA, NA,  0, NA, NA, N~
+## $ borrow_friend_c      &lt;dbl+lbl&gt; NA, NA,  0, NA,  0,  0, NA, NA,  1, NA, NA, N~
+## $ borrow_friend_d      &lt;dbl+lbl&gt; NA, NA,  0, NA,  0,  0, NA, NA,  0, NA, NA, N~
+## $ borrow_friend_y      &lt;dbl&gt; 0, 0, 1, 0, 1, 1, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0~
+## $ use_friend           &lt;chr&gt; &quot;&quot;, &quot;&quot;, &quot;A B&quot;, &quot;&quot;, &quot;A B&quot;, &quot;A B&quot;, &quot;&quot;, &quot;&quot;, &quot;A B C&quot;,~
+## $ use_friend_a         &lt;dbl+lbl&gt; NA, NA,  1, NA,  1,  1, NA, NA,  1, NA, NA, N~
+## $ use_friend_b         &lt;dbl+lbl&gt; NA, NA,  1, NA,  1,  1, NA, NA,  1, NA, NA, N~
+## $ use_friend_c         &lt;dbl+lbl&gt; NA, NA,  0, NA,  0,  0, NA, NA,  1, NA, NA, N~
+## $ use_friend_d         &lt;dbl+lbl&gt; NA, NA,  0, NA,  0,  0, NA, NA,  0, NA, NA, N~
+## $ use_friend_y         &lt;dbl+lbl&gt; NA, NA,  0, NA,  0,  0, NA, NA,  0, NA, NA, N~
+## $ loan_group           &lt;dbl+lbl&gt; 4, 4, 4, 1, 4, 4, 4, 4, 4, 4, 4, 4, 1, 4, 1, ~
+## $ borrow_group         &lt;chr&gt; &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;A B&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;~
+## $ borrow_group_a       &lt;dbl+lbl&gt; NA, NA, NA,  1, NA, NA, NA, NA, NA, NA, NA, N~
+## $ borrow_group_b       &lt;dbl+lbl&gt; NA, NA, NA,  1, NA, NA, NA, NA, NA, NA, NA, N~
+## $ borrow_group_c       &lt;dbl+lbl&gt; NA, NA, NA,  0, NA, NA, NA, NA, NA, NA, NA, N~
+## $ borrow_group_d       &lt;dbl+lbl&gt; NA, NA, NA,  0, NA, NA, NA, NA, NA, NA, NA, N~
+## $ borrow_group_y       &lt;dbl&gt; 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0~
+## $ use_group            &lt;chr&gt; &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;A B&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;~
+## $ use_group_a          &lt;dbl+lbl&gt; NA, NA, NA,  1, NA, NA, NA, NA, NA, NA, NA, N~
+## $ use_group_b          &lt;dbl+lbl&gt; NA, NA, NA,  1, NA, NA, NA, NA, NA, NA, NA, N~
+## $ use_group_c          &lt;dbl+lbl&gt; NA, NA, NA,  0, NA, NA, NA, NA, NA, NA, NA, N~
+## $ use_group_d          &lt;dbl+lbl&gt; NA, NA, NA,  0, NA, NA, NA, NA, NA, NA, NA, N~
+## $ use_group_y          &lt;dbl+lbl&gt; NA, NA, NA,  0, NA, NA, NA, NA, NA, NA, NA, N~
+## $ loan_sav             &lt;dbl+lbl&gt; 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, ~
+## $ borrow_sav           &lt;chr&gt; &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;~
+## $ borrow_sav_a         &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
+## $ borrow_sav_b         &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
+## $ borrow_sav_c         &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
+## $ borrow_sav_d         &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
+## $ borrow_sav_y         &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0~
+## $ use_sav              &lt;chr&gt; &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;~
+## $ use_sav_a            &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
+## $ use_sav_b            &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
+## $ use_sav_c            &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
+## $ use_sav_d            &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
+## $ use_sav_y            &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
+## $ group_ag             &lt;dbl+lbl&gt; 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, ~
+## $ member_ag            &lt;dbl+lbl&gt; NA,  1, NA,  1,  1,  1,  1, NA, NA, NA,  0,  ~
+## $ group_water          &lt;dbl+lbl&gt; 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, ~
+## $ member_water         &lt;dbl+lbl&gt; NA, NA, NA,  0, NA, NA, NA, NA,  1,  1, NA, N~
+## $ group_forest         &lt;dbl+lbl&gt; 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, ~
+## $ member_forest        &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA,  0, NA,  1, NA, N~
+## $ group_credit         &lt;dbl+lbl&gt; 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 1, ~
+## $ member_credit        &lt;dbl+lbl&gt; NA,  1,  0,  1, NA,  0,  1, NA, NA, NA, NA, N~
+## $ group_mutual         &lt;dbl+lbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ~
+## $ member_mutual        &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
+## $ group_trade          &lt;dbl+lbl&gt;     0,     0,     0,     0,     0,     0,    ~
+## $ member_trade         &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
+## $ group_civic          &lt;dbl+lbl&gt;     0,     0,     1,     0,     0,     0,    ~
+## $ member_civic         &lt;dbl+lbl&gt; NA, NA,  0, NA, NA, NA, NA, NA, NA, NA, NA, N~
+## $ group_local          &lt;dbl+lbl&gt; 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, ~
+## $ member_local         &lt;dbl+lbl&gt; NA,  0,  1,  1,  0,  0,  0,  0,  0,  1,  0,  ~
+## $ group_religious      &lt;dbl+lbl&gt; 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 0, 1, 0, 1, ~
+## $ member_religious     &lt;dbl+lbl&gt; NA,  0,  0,  1, NA,  1, NA,  1,  0,  1, NA, N~
+## $ group_women          &lt;dbl+lbl&gt;     0, NA(n),     1, NA(n),     1, NA(n), NA(~
+## $ member_women         &lt;dbl+lbl&gt;    NA,    NA,     1,    NA,     1,    NA,    ~
+## $ group_other          &lt;dbl+lbl&gt; 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ~
+## $ group_other_name_EN  &lt;chr&gt; &quot;&quot;, &quot;&quot;, &quot;\&quot;FORM PROD\&quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, ~
+## $ member_other         &lt;dbl+lbl&gt; NA, NA,  1, NA, NA, NA, NA, NA, NA, NA, NA, N~
+## $ group_other2         &lt;dbl+lbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ~
+## $ group_other_name2_EN &lt;chr&gt; &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;~
+## $ member_other2        &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
+## $ assist_ngo           &lt;dbl+lbl&gt; 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, ~
+## $ assist_usaid         &lt;dbl+lbl&gt; 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, ~
+## $ assist_train         &lt;dbl+lbl&gt; 0, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, ~
+## $ assist_fin           &lt;dbl+lbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ~
+## $ assist_fin2          &lt;chr&gt; &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;~
+## $ assist_fin2_a        &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
+## $ assist_fin2_b        &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
+## $ assist_fin2_c        &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
+## $ assist_fin2_d        &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
+## $ assist_money         &lt;chr&gt; &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;~
+## $ assist_money_a       &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
+## $ assist_money_b       &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
+## $ assist_money_c       &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
+## $ assist_money_d       &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
+## $ assist_emp           &lt;dbl+lbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ~
+## $ assist_invest        &lt;dbl+lbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
+## $ assist_invest_amt    &lt;dbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N~
+## $ assist_nut           &lt;dbl+lbl&gt; 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, ~
+## $ assist_ag            &lt;dbl+lbl&gt; 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, ~
+## $ assist_health        &lt;dbl+lbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ~
+## $ assist_inputs        &lt;dbl+lbl&gt; 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 1, ~</code></pre>
+>>>>>>> e7df9d05b59238d101094df2a9ba851cae9a2bf0
 </div>
 </div>
 <div id="miscellaneous-planning---its-old-pre-analysis-so-dont-worry-about-this-part" class="section level2">
