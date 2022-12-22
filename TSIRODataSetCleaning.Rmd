@@ -1,7 +1,7 @@
 ---
 title: "TSIRO Baseline Data Analysis"
 author: "Stella Banino"
-date: '2022-12-19'
+date: '2022-12-22'
 output: html_document
 ---
 
@@ -398,8 +398,51 @@ credit_gender_b <- tsiro_raw_data%>%
  view(credit_gender_narrow)
  
  credit_gender_consolidated <- credit_gender_narrow%>%
-   unite(decion_makers, ends_with("gender"), sep="")%>%
+   unite(decision_makers, ends_with("gender"), sep="")%>%
+   mutate(female_decision_maker = ifelse(str_detect(decision_makers, "F"), 1, 0), male_decision_maker = ifelse(str_detect(decision_makers, "M"), 1, 0), .after = decision_makers)%>%
    view()
+ 
+credit_gender_consolidated%>%
+  summarize(sum(female_decision_maker), sum(male_decision_maker))
+#more female than male decision_makers, but the gap decreases when you take out single-gender households (below).
+
+credit_gender_consolidated%>%
+  filter((head_sex+spouse_sex)==3)%>%
+  summarize(sum(female_decision_maker), sum(male_decision_maker))
+
+credit_gender_less_consolidated <- credit_gender_narrow %>%
+   unite(decision_makers_borrow, ends_with("gender") & starts_with("borrow"), sep="")%>%
+   unite(decision_makers_use, ends_with("gender") & starts_with("use"), sep="")%>%
+   mutate(female_decision_maker_borrow = ifelse(str_detect(decision_makers_borrow, "F"), 1, 0),
+          male_decision_maker_borrow = ifelse(str_detect(decision_makers_borrow, "M"), 1, 0),
+          female_decision_maker_use = ifelse(str_detect(decision_makers_use, "F"), 1, 0),
+          male_decision_maker_use = ifelse(str_detect(decision_makers_use, "M"), 1, 0),
+          .after = decision_makers_use)%>%
+   view()
+
+credit_gender_less_consolidated%>%
+  summarize(sum(female_decision_maker_borrow), sum(male_decision_maker_borrow), sum(female_decision_maker_use), sum(male_decision_maker_use))
+#more women have a say in how money is used than whether it is borrowed.
+
+credit_gender_less_consolidated%>%
+  filter((head_sex + spouse_sex) == 3)%>%
+  summarize(sum(female_decision_maker_borrow), sum(male_decision_maker_borrow), sum(female_decision_maker_use), sum(male_decision_maker_use))
+#once we reduce to two-gender households, gap shrinks and we see that while a
+#roughly equal number of men and women decide on whether to borrow, more women
+#(slightly) decide how it is spent.
+
+credit_gender_narrow%>%
+   filter((head_sex + spouse_sex) == 3, borrow_ngo_gender != "")%>%
+  glimpse()%>%
+   ggplot()+
+   geom_bar(mapping = aes(borrow_ngo_gender))
+
+credit_gender_narrow%>%
+   filter((head_sex + spouse_sex) == 3, use_ngo_gender != "")%>%
+  glimpse()%>%
+   ggplot()+
+   geom_bar(mapping = aes(use_ngo_gender))
+   
 ```
 
 
@@ -414,4 +457,3 @@ Definitely incorporate score on how much they care about protecting the environm
 Is it possible to make a sustainability index?  Should probably incorporate harmful activities (how much deforestation, weighted percentage of unclean fuel use, destructive agriculture practices) and helpful activities (reforestation, resource conservation, sustainably agriculture practices)
 
 Is there a good poverty indicator?  Maybe ask Kelvin's advice on this
-
