@@ -12,6 +12,7 @@ library(moderndive)
 library(modelr)
 library(haven)
 library(purrr)
+library(RM.weights) #used for FIES analysis
 ```
 
 ## Importing the data
@@ -113,14 +114,14 @@ tsiro_fm_data <- tsiro_raw_data%>%
   mutate(across(c("head_sex", "spouse_sex", "mod_b_respondent_sex", "mod_c_respondent_sex", "mod_d_respondent_sex", "mod_e_respondent_sex", "mod_f_respondent_sex", "mod_i_respondent_sex", "mod_h_respondent_sex", "mod_g_respondent_sex", "mod_c_wdd_respondent_sex"), str_replace, "2", "F"))
 #glimpse(tsiro_raw_data)
 
-roster <- select(tsiro_fm_data, head_sex,spouse_sex,region,hhsize:read_head)
-agriculture <- select(tsiro_fm_data, mod_d_respondent_sex, plots:nrm_pract_y)
-credit <- select(tsiro_fm_data, mod_e_respondent_sex, loan_ngo:assist_inputs)
-resources <- select(tsiro_fm_data, mod_f_respondent_sex, trees:threats_other_EN)
-energy <- select(tsiro_fm_data, mod_g_respondent_sex, fuel_sources:fuel_dist1_3)
-poverty <- select(tsiro_fm_data, mod_i_respondent_sex, tv:detergent)
-foodsec <- select(tsiro_fm_data, mod_c_respondent_sex, mod_c_wdd_respondent_sex, fies_enough:mddw)
-empower <- select(tsiro_fm_data, mod_h_respondent_sex, partner:alone)
+roster <- select(tsiro_fm_data, hhid_deid, head_sex,spouse_sex,region,hhsize:read_head)
+agriculture <- select(tsiro_fm_data, hhid_deid, mod_d_respondent_sex, plots:nrm_pract_y)
+credit <- select(tsiro_fm_data, hhid_deid, mod_e_respondent_sex, loan_ngo:assist_inputs)
+resources <- select(tsiro_fm_data, hhid_deid, mod_f_respondent_sex, trees:threats_other_EN)
+energy <- select(tsiro_fm_data, hhid_deid, mod_g_respondent_sex, fuel_sources:fuel_dist1_3)
+poverty <- select(tsiro_fm_data, hhid_deid, mod_i_respondent_sex, tv:detergent)
+foodsec <- select(tsiro_fm_data, hhid_deid, mod_c_respondent_sex, mod_c_wdd_respondent_sex, fies_enough:mddw)
+empower <- select(tsiro_fm_data, hhid_deid, head_sex,spouse_sex, mod_h_respondent_sex, partner:alone)
 
 view(roster)
 view(agriculture)
@@ -402,8 +403,7 @@ credit_gender_b <- tsiro_raw_data%>%
    mutate(female_decision_maker = ifelse(str_detect(decision_makers, "F"), 1, 0), male_decision_maker = ifelse(str_detect(decision_makers, "M"), 1, 0), .after = decision_makers)%>%
    view()
  
-credit_gender_consolidated%>%
-  summarize(sum(female_decision_maker), sum(male_decision_maker))
+summarize(credit_gender_consolidated, women = sum(female_decision_maker), men = sum(male_decision_maker),)
 #more female than male decision_makers, but the gap decreases when you take out single-gender households (below).
 
 credit_gender_consolidated%>%
@@ -443,6 +443,83 @@ credit_gender_narrow%>%
    ggplot()+
    geom_bar(mapping = aes(use_ngo_gender))
    
+```
+
+#### Exploring the empowerment dataset
+
+Just an initial exploration of the dataset.
+
+```{r}
+#view(empower)
+#glimpse(empower)
+empower_real <- empower%>%
+  drop_na(mod_h_respondent_sex)%>%
+  arrange(desc(mod_h_respondent_sex), partner)
+glimpse(empower_real)
+
+empower_f <- empower_real%>%
+  filter(mod_h_respondent_sex == "F" | (spouse_sex == "F" & partner == 1))%>%
+  mutate(male_present = alone+case_when(mod_h_respondent_sex == "M" ~ 1,
+         mod_h_respondent_sex == "F" ~ 0))%>%
+  select(-alone)
+view(empower_f)
+#Making sure there is a woman in the household whom the respondent is discussing.
+#Filters out men responding who have no wives or whose partners' genders we don't
+#know.
+```
+
+#### Calculating (modified) SWPER index
+
+```{r echo = FALSE, results = 'asis'}
+library(knitr)
+indicator = c("Beating not justified if wife goes out without telling husband", "Beating not justified if wife neglects the children", "Beating not justified if wife argues with husband", "Beating not justified if wife refuses to have sex with husband", "Beating not justified if wife burns the food", )
+kable()
+```
+
+
+
+Official components and whether they're present (note, representative values will have to be modified):
+
+ | Justified=–1; don’t know=0; not justified =1 | PRESENT
+d=–1; don’t know=0; not justified=1
+ Justified=–1; don’t know=0; not justified=1
+ Justified=–1; don’t know=0; not justified=1
+ Justified=–1; don’t know=0; not justified=1
+Frequency of reading newspaper or magazine Not at all=0; <once a week=1;
+≥once a week=2
+Respondent worked in past 12 months No=0; in the past year=1;
+have a job, but on leave past 7 days=2;
+currently working=2
+Woman’s education in completed years of schooling Years
+Education difference: woman’s minus husband’s completed
+years of schooling
+Years
+Age difference: woman’s age minus husband’s age Years
+Age at first cohabitation Years
+Age of woman at first birth* Years
+Who usually decides on respondent’s health care Husband or other alone=–1; joint=0;
+respondent alone=1
+Who usually decides on large household purchases Husband or other alone=–1; joint=0;
+respondent alone=1
+Who usually decides on visits to family or relatives Husband or other alone=–1; joint=0;
+respondent alone=1
+
+
+
+```{r}
+
+```
+
+
+#### Calculating FIES Percentage
+
+```{r}
+view(foodsec)
+#code modified from FAO Voices of the Hungry project report, attached.
+
+foodsec_fies <- foodsec%>%
+  mutate(fies_raw_sum = rowSums(across(fies_enough:fies_day)), .after = fies_day)%>%
+  view()
 ```
 
 
