@@ -403,7 +403,7 @@ credit_gender_b <- tsiro_raw_data%>%
    mutate(female_decision_maker = ifelse(str_detect(decision_makers, "F"), 1, 0), male_decision_maker = ifelse(str_detect(decision_makers, "M"), 1, 0), .after = decision_makers)%>%
    view()
  
-summarize(credit_gender_consolidated, women = sum(female_decision_maker), men = sum(male_decision_maker),)
+summarize(credit_gender_consolidated, women = sum(female_decision_maker), men = sum(male_decision_maker))
 #more female than male decision_makers, but the gap decreases when you take out single-gender households (below).
 
 credit_gender_consolidated%>%
@@ -468,49 +468,23 @@ view(empower_f)
 #know.
 ```
 
-#### Calculating (modified) SWPER index
-
-```{r echo = FALSE, results = 'asis'}
-library(knitr)
-indicator = c("Beating not justified if wife goes out without telling husband", "Beating not justified if wife neglects the children", "Beating not justified if wife argues with husband", "Beating not justified if wife refuses to have sex with husband", "Beating not justified if wife burns the food", )
-kable()
-```
-
-
-
-Official components and whether they're present (note, representative values will have to be modified):
-
- | Justified=–1; don’t know=0; not justified =1 | PRESENT
-d=–1; don’t know=0; not justified=1
- Justified=–1; don’t know=0; not justified=1
- Justified=–1; don’t know=0; not justified=1
- Justified=–1; don’t know=0; not justified=1
-Frequency of reading newspaper or magazine Not at all=0; <once a week=1;
-≥once a week=2
-Respondent worked in past 12 months No=0; in the past year=1;
-have a job, but on leave past 7 days=2;
-currently working=2
-Woman’s education in completed years of schooling Years
-Education difference: woman’s minus husband’s completed
-years of schooling
-Years
-Age difference: woman’s age minus husband’s age Years
-Age at first cohabitation Years
-Age of woman at first birth* Years
-Who usually decides on respondent’s health care Husband or other alone=–1; joint=0;
-respondent alone=1
-Who usually decides on large household purchases Husband or other alone=–1; joint=0;
-respondent alone=1
-Who usually decides on visits to family or relatives Husband or other alone=–1; joint=0;
-respondent alone=1
-
-
+#### Views on the environment score
 
 ```{r}
+glimpse(resources)
+resources_views <- resources%>%
+  rename(protect = protect_label)%>%
+  mutate(across(starts_with("protect_"), ~ .x - 3))
+# formatting so operations are easier
+
+resources_views <- resources_views %>%
+  mutate(protect_avg = rowMeans(select(resources_views, starts_with("protect_")), na.rm = TRUE), .after = protect_med)%>%
+  glimpse()
+# Calculating priority indicator "Average score measuring the perceived
+# importance of protecting nature and the environment".
+# Asks about the importance of 8 ecosystem services relevant to this population.
 
 ```
-
-
 #### Calculating FIES Percentage
 
 ```{r}
@@ -520,6 +494,58 @@ view(foodsec)
 foodsec_fies <- foodsec%>%
   mutate(fies_raw_sum = rowSums(across(fies_enough:fies_day)), .after = fies_day)%>%
   view()
+```
+
+
+## Creating narrow dataset
+
+Okay first planning - what do I want in here, section by section?
+
+#### roster
+
+keep    $ hhid_deid    <dbl> 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20~
+keep    $ head_sex     <chr> "M", "M", "M", "M", "M", "M", "M", "M", "M", "M", "M", "M", "F", "M",~
+keep    $ spouse_sex   <chr> "F", "F", "F", "F", "F", "F", "F", "F", "F", "F", "F", "F", NA, "F", ~
+keep    $ gender_hh_type       <dbl+lbl> 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 2, 3, 3, 3, 1, 3
+
+#### agriculture
+
+$ hhid_deid                 <dbl> 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 1~
+$ nrm_pract                 <chr> "C", "A B C D", "A B D E F", "C", "A B D F", "A B C D E", "Y", "~
+$ nrm_pract_a               <dbl+lbl> 0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 0, 1, ~
+$ nrm_pract_b               <dbl+lbl> 0, 1, 1, 0, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 0, 1, 0, 1, 1, 1, ~
+$ nrm_pract_c               <dbl+lbl> 1, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 0, ~
+$ nrm_pract_d               <dbl+lbl> 0, 1, 1, 0, 1, 1, 0, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, ~
+$ nrm_pract_e               <dbl+lbl> 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 0, ~
+$ nrm_pract_f               <dbl+lbl> 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, ~
+$ nrm_pract_g               <dbl+lbl> 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, ~
+$ nrm_pract_y               <dbl+lbl> 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, ~
+
+#### credit
+
+#### resources
+
+$ hhid_deid            <dbl> 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20~
+$ mod_f_respondent_sex <chr> "M", "M", "F", "M", "F", "M", "M", "M", "M", "M", "M", "M", "F", "M",~
+
+#### energy
+
+#### poverty
+
+#### foodsec
+
+#### empower
+ 
+
+```{r}
+glimpse(roster)
+glimpse(agriculture)
+glimpse(credit)
+glimpse(resources_views)
+glimpse(energy)
+glimpse(poverty)
+glimpse(foodsec)
+glimpse(empower)
 ```
 
 
