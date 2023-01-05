@@ -492,8 +492,8 @@ view(foodsec)
 #code modified from FAO Voices of the Hungry project report, attached.
 
 foodsec_fies <- foodsec%>%
-  mutate(fies_raw_sum = rowSums(across(fies_enough:fies_day)), .after = fies_day)%>%
-  view()
+  mutate(fies_unw_avg = rowMeans(select(foodsec, starts_with("fies_")), na.rm = TRUE), .after = fies_day)%>%
+  glimpse()
 ```
 
 
@@ -503,39 +503,57 @@ Okay first planning - what do I want in here, section by section?
 
 #### roster
 
-keep    $ hhid_deid    <dbl> 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20~
-keep    $ head_sex     <chr> "M", "M", "M", "M", "M", "M", "M", "M", "M", "M", "M", "M", "F", "M",~
-keep    $ spouse_sex   <chr> "F", "F", "F", "F", "F", "F", "F", "F", "F", "F", "F", "F", NA, "F", ~
-keep    $ gender_hh_type       <dbl+lbl> 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 2, 3, 3, 3, 1, 3
+hhid_deid
+spouse_sex
+gender_hh_type
 
 #### agriculture
 
-$ hhid_deid                 <dbl> 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 1~
-$ nrm_pract                 <chr> "C", "A B C D", "A B D E F", "C", "A B D F", "A B C D E", "Y", "~
-$ nrm_pract_a               <dbl+lbl> 0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 0, 1, ~
-$ nrm_pract_b               <dbl+lbl> 0, 1, 1, 0, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 0, 1, 0, 1, 1, 1, ~
-$ nrm_pract_c               <dbl+lbl> 1, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 0, ~
-$ nrm_pract_d               <dbl+lbl> 0, 1, 1, 0, 1, 1, 0, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, ~
-$ nrm_pract_e               <dbl+lbl> 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 0, ~
-$ nrm_pract_f               <dbl+lbl> 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, ~
-$ nrm_pract_g               <dbl+lbl> 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, ~
-$ nrm_pract_y               <dbl+lbl> 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, ~
+hhid_deid
+nrm_pract:nrm_pract_y
 
 #### credit
 
-#### resources
+#### resources_views
 
-$ hhid_deid            <dbl> 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20~
-$ mod_f_respondent_sex <chr> "M", "M", "F", "M", "F", "M", "M", "M", "M", "M", "M", "M", "F", "M",~
+hhid_deid
+mod_f_respondent_sex
+trees_plant:trees_other_EN
+land_kind_a           did you clear forest for cultivation
+clear_where_a         plan to clear land for cultivation
+clear_protect         plan to clear protected area
+honey
+mush
+insects
+fruits
+meat
+plants
+woods
+char
+fish                        how important are each of these to your livelihood
+protect_water:loss_affect   importance of protecting each, have you lost resources, how were you affected?
+threats:threat_big_i
 
 #### energy
 
+hhid_deid
+starts_with(fuel_sources), starts_with(fuel_men), starts_with(fuel_women) what fuel sources do you use and who spends how much time gathering them
+
 #### poverty
 
-#### foodsec
+If I could figure out how they calculated PPI from this that would be great
+
+#### foodsec_fies
+
+hhid_deid
+fies_enough:fies_unw_avg        fies info
+CSI         coping strategies index score
+birth       has anyone given birth in this household
+mddw        minimum dietary diversity - women
 
 #### empower
- 
+
+hhid_deid 
 
 ```{r}
 glimpse(roster)
