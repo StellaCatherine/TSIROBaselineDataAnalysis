@@ -583,9 +583,12 @@ narrow <- reduce(list(roster_merge, agriculture_merge, resources_merge, energy_m
 # view(narrow)
 
 final <- narrow %>%
-  mutate(nrm_pract_sum = rowSums(select(narrow, nrm_pract_a:nrm_pract_g)), .after = nrm_pract_g)%>%
-  select(-nrm_pract, -head_sex.y, -spouse_sex.y)%>%
   rename(head_sex = head_sex.x, spouse_sex = spouse_sex.x)%>%
+  mutate(nrm_pract_sum = rowSums(select(narrow, nrm_pract_a:nrm_pract_g)), .after = nrm_pract_g)%>%
+  mutate(across(fuel_men_1:fuel_women_6), replace_na(0))%>%
+  mutate(fuel_men_hours = rowSums(select(narrow, fuel_men_1:fuel_men_6), na.rm = TRUE), .after= fuel_women_6)%>%
+  mutate(fuel_women_hours = rowSums(select(narrow, fuel_women_1:fuel_women_6), na.rm = TRUE), .after = fuel_men_hours)%>%
+  select(-nrm_pract, -head_sex.y, -spouse_sex.y, -fuel_men_1:fuel_women_6)%>%
   view()
 ```
 
