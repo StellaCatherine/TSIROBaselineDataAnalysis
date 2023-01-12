@@ -114,12 +114,13 @@ tsiro_fm_data <- tsiro_raw_data%>%
   mutate(across(c("head_sex", "spouse_sex", "mod_b_respondent_sex", "mod_c_respondent_sex", "mod_d_respondent_sex", "mod_e_respondent_sex", "mod_f_respondent_sex", "mod_i_respondent_sex", "mod_h_respondent_sex", "mod_g_respondent_sex", "mod_c_wdd_respondent_sex"), str_replace, "2", "F"))
 #glimpse(tsiro_raw_data)
 
+
 roster <- select(tsiro_fm_data, hhid_deid, head_sex,spouse_sex,region,hhsize:read_head)
 agriculture <- select(tsiro_fm_data, hhid_deid, mod_d_respondent_sex, plots:nrm_pract_y)
 credit <- select(tsiro_fm_data, hhid_deid, mod_e_respondent_sex, loan_ngo:assist_inputs)
 resources <- select(tsiro_fm_data, hhid_deid, mod_f_respondent_sex, trees:threats_other_EN)
 energy <- select(tsiro_fm_data, hhid_deid, mod_g_respondent_sex, fuel_sources:fuel_dist1_3)
-poverty <- select(tsiro_fm_data, hhid_deid, mod_i_respondent_sex, tv:detergent)
+poverty <- select(tsiro_fm_data, hhid_deid, mod_i_respondent_sex, tv:detergent, birth, children_5_18)
 foodsec <- select(tsiro_fm_data, hhid_deid, mod_c_respondent_sex, mod_c_wdd_respondent_sex, fies_enough:mddw)
 empower <- select(tsiro_fm_data, hhid_deid, head_sex,spouse_sex, mod_h_respondent_sex, partner:alone)
 
@@ -498,6 +499,30 @@ foodsec_fies <- foodsec%>%
   mutate(fies_unw_avg = rowMeans(select(foodsec, starts_with("fies_")), na.rm = TRUE), .after = fies_day)
 ```
 
+#### Calculating PPI
+
+```{r}
+view(poverty)
+
+poverty_ppi <- poverty%>%
+  mutate(soap_water = as.numeric(water == 1 & (detergent == 1 | detergent == 2)),
+         soap_4k = as.numeric(soap > 4000))%>%
+  mutate(ppi = (77)*1 + (-13)*food_1 + (-13)*tv + (-12)*food_2 + (-7)*food_3
+					+ (-5)*clothes_1 + (-4)*linen_2 + (4)*food_5 + (-4)*clothes_2
+					+ (4)*birth + (-4)*food_4 + (-3)*clothes_3
+					+ (-3)*soap_water + (-3)*shoes + (2)*children_5_18 + (-2)*linen_1
+					+ (-1)*soap_4k + (-1)*roofmat)%>%
+  view()
+
+summarise(poverty_ppi, across(everything(), ~ sum(is.na(.x))))
+
+# I'm using children 5-18 as a stand-in for children 6-11 rn, but that's illegal
+# technically.  Will I have to go through IRB review process just to get their
+# age group?
+
+```
+
+
 ## Creating narrow dataset
 
 Okay first planning - what do I want in here, section by section?
@@ -583,11 +608,15 @@ narrow <- reduce(list(roster_merge, agriculture_merge, resources_merge, energy_m
 # view(narrow)
 
 final <- narrow %>%
+  # getting rid of the head_sex and spouse_sex numeric versions 
   rename(head_sex = head_sex.x, spouse_sex = spouse_sex.x)%>%
+  # how many natural resource management practices is this household using?
   mutate(nrm_pract_sum = rowSums(select(narrow, nrm_pract_a:nrm_pract_g)), .after = nrm_pract_g)%>%
+  # how many hours are men vs. women spending collecting fuel
   mutate(across(fuel_men_1:fuel_women_6), replace_na(0))%>%
   mutate(fuel_men_hours = rowSums(select(narrow, fuel_men_1:fuel_men_6), na.rm = TRUE), .after= fuel_women_6)%>%
   mutate(fuel_women_hours = rowSums(select(narrow, fuel_women_1:fuel_women_6), na.rm = TRUE), .after = fuel_men_hours)%>%
+  # getting rid of all the intermediate or replaced variables.
   select(-nrm_pract, -head_sex.y, -spouse_sex.y, -fuel_men_1:fuel_women_6)%>%
   view()
 ```
@@ -599,6 +628,15 @@ way, this adds another layer of difficulty to my assumption that I can figure ou
 the gender of a respondent's partner based on this data.  I might just have to
 take out any data that required me to assume the gender of the respondent's partner -
 or the presence of a partner at all.
+
+
+Ok questions for 1/12 meeting:
+- going to need child_6_11 to accurately calculate PPI.  Would that need IRB approval?  If so, that's not going to get to me in time.
+- for any of the you or your partner stuff to be helpful, I think we need to know if they're the head of the household for two reasons:
+1. we don't know their marital status/spouse of their partner unless we have that
+  a. based on the numbers that less than 1% of HoH couples are same-sex I don't mind assuming all unknown spouses are straight, but for the credit section, I don't even know if they have a partner
+2. in the empowerment section we do know whether they have a partner, but we're missing a crucial aspect of their decision making power if we don't know whether they're in the HoH couple.  If I answered the door, I would say I'm not on the deed, but that doesn't mean women have less power in my household, it just means I'm not in the HoH couple
+
 
 ## Miscellaneous Planning - it's old (pre-analysis), so don't worry about this part
 
