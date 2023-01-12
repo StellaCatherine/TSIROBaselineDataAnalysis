@@ -481,11 +481,18 @@ resources_views <- resources%>%
 # formatting so operations are easier
 
 resources_views <- resources_views %>%
-  mutate(protect_avg = rowMeans(select(resources_views, starts_with("protect_")), na.rm = TRUE), .after = protect_med)#%>%
+  mutate(protect_avg = rowMeans(select(resources_views, starts_with("protect_")), na.rm = TRUE), .after = protect_med)%>%
+  mutate(protect_sum = protect_avg*8)
 # glimpse()
 # Calculating priority indicator "Average score measuring the perceived
 # importance of protecting nature and the environment".
 # Asks about the importance of 8 ecosystem services relevant to this population.
+
+resources_views <- resources_views %>%
+  rename("threats_big_a" = "threats_illegal_logging",
+         "threats_big_b" = "",
+         "threats_big_c" = "",
+         "threats_big_d" = "")
 
 ```
 
@@ -588,7 +595,7 @@ hhid_deid
 roster_merge <- roster%>%
   select(hhid_deid, head_sex, spouse_sex, gender_hh_type)
 agriculture_merge <- agriculture%>%
-  select(hhid_deid, nrm_pract:nrm_pract_g)
+  select(hhid_deid, nrm_pract:nrm_pract_y)
 credit_merge <- credit
 resources_merge <- resources_views%>%
   select(hhid_deid, mod_f_respondent_sex, trees_plant:trees_other_EN,
@@ -611,7 +618,7 @@ final <- narrow %>%
   # getting rid of the head_sex and spouse_sex numeric versions 
   rename(head_sex = head_sex.x, spouse_sex = spouse_sex.x)%>%
   # how many natural resource management practices is this household using?
-  mutate(nrm_pract_sum = rowSums(select(narrow, nrm_pract_a:nrm_pract_g)), .after = nrm_pract_g)%>%
+  mutate(nrm_pract_sum = rowSums(select(narrow, nrm_pract_a:nrm_pract_y)), .after = nrm_pract_g)%>%
   # how many hours are men vs. women spending collecting fuel
   mutate(across(fuel_men_1:fuel_women_6), replace_na(0))%>%
   mutate(fuel_men_hours = rowSums(select(narrow, fuel_men_1:fuel_men_6), na.rm = TRUE), .after= fuel_women_6)%>%
@@ -620,6 +627,50 @@ final <- narrow %>%
   select(-nrm_pract, -head_sex.y, -spouse_sex.y, -fuel_men_1:fuel_women_6)%>%
   view()
 ```
+## Analysis
+
+#### Initial poking around
+
+```{r}
+
+final%>%
+  group_by(mod_f_respondent_sex)%>%
+  summarise(across(protect_air:protect_avg, ~ (mean(.x, na.rm = TRUE))))%>%
+  pivot_longer(protect_air:protect_avg, names_to = "protect_resource", names_prefix = "protect_")%>%
+  ggplot(aes(protect_resource, value, group = mod_f_respondent_sex))+
+  geom_col(aes(fill = mod_f_respondent_sex), position = "dodge")
+
+final%>%
+  group_by(mod_f_respondent_sex)%>%
+  summarise(across(threats_big_a:threats_big_i, ~ (sum(.x, na.rm = TRUE))))%>%
+  pivot_longer(threats_big_a:threats_big_i, names_to = "protect_resource", names_prefix = "protect_")%>%
+  ggplot(aes(protect_resource, value, group = mod_f_respondent_sex))+
+  geom_col(aes(fill = mod_f_respondent_sex), position = "dodge")
+
+final%>%
+  mutate(loss = as.factor(loss))%>%
+  ggplot(aes(protect_avg))+
+  geom_density(aes(color = loss), size = 1)+
+  scale_color_brewer(palette = "Paired")
+
+final%>%
+  drop_na(nrm_pract_sum)%>%
+  mutate(nrm_pract_sum = as.factor(nrm_pract_sum))%>%
+  ggplot(aes(protect_avg))+
+  geom_density(aes(color = nrm_pract_sum))+
+  facet_grid(cols = vars(nrm_pract_sum))
+
+final%>%
+  drop_na(nrm_pract_sum)%>%
+  mutate(nrm_pract_sum = as.factor(nrm_pract_sum))%>%
+  ggplot(aes(protect_avg))+
+  geom_density(aes(color = nrm_pract_sum))+
+  facet_grid(cols = vars(nrm_pract_sum))
+
+```
+
+
+
 
 hm.  This is the first time I've gotten a good look at the roster and I'm
 looking through the gender hh type and noticing that it doesn't always align
