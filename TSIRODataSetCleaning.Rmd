@@ -489,10 +489,15 @@ resources_views <- resources_views %>%
 # Asks about the importance of 8 ecosystem services relevant to this population.
 
 resources_views <- resources_views %>%
-  rename("threats_big_a" = "threats_illegal_logging",
-         "threats_big_b" = "",
-         "threats_big_c" = "",
-         "threats_big_d" = "")
+  rename("threats_illegal_logging" = "threats_big_a",
+         "threats_slash_burn" = "threats_big_b",
+         "threats_poaching" = "threats_big_c",
+         "threats_wildlife_trafficking" = "threats_big_d",
+         "threats_seine_fishing" = "threats_big_e",
+         "threats_fishing_other" = "threats_big_f",
+         "threats_climate_change" = "threats_big_g",
+         "threats_farming" = "threats_big_h",
+         "threats_resource_use" = "threats_big_i")
 
 ```
 
@@ -601,7 +606,7 @@ resources_merge <- resources_views%>%
   select(hhid_deid, mod_f_respondent_sex, trees_plant:trees_other_EN,
          land_kind_a, clear_where_a, clear_protect, honey, mush, insects,
          fruits, meat, plants, wood, char, fish, protect_water:loss_affect,
-         threats:threats_big_i)
+         threats:threats_resource_use)
 energy_merge <- energy%>%
   select(hhid_deid, starts_with("fuel_sources"), starts_with("fuel_men"), starts_with("fuel_women"))
 poverty_merge <- poverty
@@ -642,10 +647,20 @@ final%>%
 
 final%>%
   group_by(mod_f_respondent_sex)%>%
-  summarise(across(threats_big_a:threats_big_i, ~ (sum(.x, na.rm = TRUE))))%>%
-  pivot_longer(threats_big_a:threats_big_i, names_to = "protect_resource", names_prefix = "protect_")%>%
-  ggplot(aes(protect_resource, value, group = mod_f_respondent_sex))+
-  geom_col(aes(fill = mod_f_respondent_sex), position = "dodge")
+  summarise(across(threats_illegal_logging:threats_resource_use, ~ (mean(.x, na.rm = TRUE))))%>%
+  pivot_longer(threats_illegal_logging:threats_resource_use, names_to = "threat_type", names_prefix = "threats_")%>%
+  ggplot(aes(fct_rev(fct_reorder(threat_type, value)), value, group = mod_f_respondent_sex))+
+  geom_col(aes(fill = mod_f_respondent_sex), position = "dodge")+
+  scale_y_continuous(labels = scales::percent)+
+  guides(x = guide_axis(angle = 45))+
+  labs(title = "Percent of Men and Women who Believe Their Ecosystem Is Threatened By...",
+       x = "Threat Type",
+       y = "Percent")
+
+# The greatest gap seems to be concern over firewood.  Out of curiosity...
+summarise(final, across(c(fuel_men_3, fuel_women_3), ~ (mean(.x, na.rm = TRUE))))
+# On average, men spend VASTLY more time collecting firewood than women.  Maybe
+# that's why they're more concerned about the impact of illegal logging.
 
 final%>%
   mutate(loss = as.factor(loss))%>%
