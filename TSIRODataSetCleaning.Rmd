@@ -645,6 +645,9 @@ final%>%
   ggplot(aes(protect_resource, value, group = mod_f_respondent_sex))+
   geom_col(aes(fill = mod_f_respondent_sex), position = "dodge")
 
+# this looks at average scores on a five-point scale.  What about just a blanket
+# do you think this resource is important or not?
+
 final%>%
   group_by(mod_f_respondent_sex)%>%
   summarise(across(threats_illegal_logging:threats_resource_use, ~ (mean(.x, na.rm = TRUE))))%>%
