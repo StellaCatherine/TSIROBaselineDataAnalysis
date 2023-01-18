@@ -619,24 +619,20 @@ roster_merge <- roster%>%
 agriculture_merge <- agriculture%>%
   select(hhid_deid, nrm_pract:nrm_pract_y)
 credit_merge <- credit
-resources_merge <- resources_views%>%
-  select(hhid_deid, mod_f_respondent_sex, trees_plant:trees_other_EN,
-         land_kind_a, land_kind_c, clear_where_a, clear_where_c, clear_protect, honey, mush, insects,
-         fruits, meat, plants, wood, char, fish, protect_water:loss_affect,
-         threats:threats_resource_use)
+resources_merge <- resources_views
+# %>%
+#   select(hhid_deid, mod_f_respondent_sex, trees_plant:trees_other_EN,
+#          land_kind_a, land_kind_c, clear_where_a, clear_where_c, clear_protect, collect:fish_why, protect_water:loss_affect,
+#          threats:threats_resource_use)
 energy_merge <- energy%>%
   select(hhid_deid, starts_with("fuel_sources"), starts_with("fuel_men"), starts_with("fuel_women"))
-poverty_merge <- poverty
+poverty_merge <- poverty_ppi
 foodsec_merge <- foodsec_fies%>%
   select(hhid_deid, fies_enough:fies_unw_avg, CSI, birth, mddw)
 empower_merge <- empower_real%>%
   select(hhid_deid:land_name, hit_out:alone, male_potentially_present)
 
-narrow <- reduce(list(roster_merge, agriculture_merge, resources_merge, energy_merge, poverty_merge, foodsec_merge, empower_merge), full_join, by = "hhid_deid")
-
-# view(narrow)
-
-final <- narrow %>%
+final <- reduce(list(roster_merge, agriculture_merge, resources_merge, energy_merge, poverty_merge, foodsec_merge, empower_merge), full_join, by = "hhid_deid")%>%
   # getting rid of the head_sex and spouse_sex numeric versions 
   rename(head_sex = head_sex.x, spouse_sex = spouse_sex.x)%>%
   # how many natural resource management practices is this household using?
@@ -722,8 +718,6 @@ final%>%
   ggplot(aes(protect_avg))+
   geom_density(aes(color = nrm_pract_sum))+
   facet_grid(cols = vars(nrm_pract_sum))
-
-final%>%
   
 
 ```
@@ -755,19 +749,78 @@ final_agriculture <- final_agriculture%>%
   mutate(clear_any = clear_where_a+clear_where_c+land_kind_a+land_kind_c)%>%
   mutate(clear_any = ifelse(clear_any > 0, 1, 0))%>%
   view()
+
 final_agriculture%>%
   group_by(clear_any)%>%
-  ggplot(aes(as_factor(crops_1), fill = clear_any))+
-  geom_bar()
+  ggplot(aes(as_factor(crops_1), fill = as_factor(clear_any)))+
+  geom_bar()+
+  guides(x = guide_axis(angle = 45))
 
-#100 PERCENT BUGGY NEED TO FIX START HERE NEXT TIME YOU OPEN
+final_agriculture%>%
+  filter(crops_1 == 1 |
+           crops_1 == 2 |
+           crops_1 == 6 |
+           crops_1 == 7 |
+           crops_1 == 13 |
+           crops_1 == 14)%>%
+  group_by(clear_any)%>%
+  ggplot(aes(as_factor(crops_1), fill = as_factor(clear_any)))+
+  geom_bar(position = "fill")+
+  guides(x = guide_axis(angle = 45))
 
-#define response variable
-y <- final_agriculture$clear_where_a
+final_agriculture%>%
+    filter(crops_1 == 1 |
+           crops_1 == 2 |
+           crops_1 == 6 |
+           crops_1 == 7 |
+           crops_1 == 13 |
+           crops_1 == 14)%>%
+  group_by(collect)%>%
+  ggplot(aes(as_factor(crops_1), fill = as_factor(collect)))+
+  geom_bar(position = "fill")+
+  guides(x = guide_axis(angle = 45))
 
-#define matrix of predictor variables
-x <- data.matrix(mtcars[, c('mpg', 'wt', 'drat', 'qsec')])
+final_agriculture%>%
+    filter(crops_1 == 1 |
+           crops_1 == 2 |
+           crops_1 == 6 |
+           crops_1 == 7 |
+           crops_1 == 13 |
+           crops_1 == 14)%>%
+  drop_na(loss)%>%
+  group_by(loss)%>%
+  ggplot(aes(as_factor(crops_1), fill = as_factor(loss)))+
+  geom_bar(position = "fill")+
+  guides(x = guide_axis(angle = 45))
 
+final_agriculture%>%
+    filter(crops_1 == 1 |
+           crops_1 == 2 |
+           crops_1 == 6 |
+           crops_1 == 7 |
+           crops_1 == 13 |
+           crops_1 == 14)%>%
+  drop_na(threats_big)%>%
+  group_by(threats_big)%>%
+  ggplot(aes(as_factor(crops_1), fill = as_factor(threats_big)))+
+  geom_bar(position = "fill")+
+  guides(x = guide_axis(angle = 45))
+
+final_agriculture%>%
+    filter(crops_1 == 1 |
+           crops_1 == 2 |
+           crops_1 == 6 |
+           crops_1 == 7 |
+           crops_1 == 13 |
+           crops_1 == 14)%>%
+  drop_na(ppi)%>%
+  group_by(ppi)%>%
+  ggplot(aes(as_factor(crops_1), fill = as_factor(ppi)))+
+  geom_bar(position = "fill")+
+  guides(x = guide_axis(angle = 45))
+
+#obviously not the best chart type for this, but wildly, you can see which crop-
+#growers tend to be more and less wealthy.  Cassava growers aren't doing so hot.
 
 
 ```
