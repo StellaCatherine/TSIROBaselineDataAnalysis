@@ -501,6 +501,23 @@ resources_views <- resources_views %>%
 
 ```
 
+I want to look more at unsustainable resource use.  The toolkit says each activity should pick unsustainable practices to look at, so here's a list of what TSIRO collected that I think I could use:
+collection of forest products
+plans to clear land next year
+cleared land last year
+
+do you engage in this activity?
+why?
+how important is it to you?
+how often do you do it?
+has this changed over the past year (if so, why)?
+perception of ecosystem status in the future? (could take this from threats data)
+who makes decisions on engaging in the activity and who engages most in the activity can be disaggregated by gender
+
+Primary indicator here is whether the households engage in the activity, other stuff is just for added context
+
+
+
 #### Calculating FIES Percentage
 
 ```{r}
@@ -604,7 +621,7 @@ agriculture_merge <- agriculture%>%
 credit_merge <- credit
 resources_merge <- resources_views%>%
   select(hhid_deid, mod_f_respondent_sex, trees_plant:trees_other_EN,
-         land_kind_a, clear_where_a, clear_protect, honey, mush, insects,
+         land_kind_a, land_kind_c, clear_where_a, clear_where_c, clear_protect, honey, mush, insects,
          fruits, meat, plants, wood, char, fish, protect_water:loss_affect,
          threats:threats_resource_use)
 energy_merge <- energy%>%
@@ -640,13 +657,34 @@ final <- narrow %>%
 
 final%>%
   group_by(mod_f_respondent_sex)%>%
-  summarise(across(protect_air:protect_avg, ~ (mean(.x, na.rm = TRUE))))%>%
-  pivot_longer(protect_air:protect_avg, names_to = "protect_resource", names_prefix = "protect_")%>%
+  summarise(across(protect_water:protect_avg, ~ (mean(.x, na.rm = TRUE))))%>%
+  pivot_longer(protect_water:protect_avg, names_to = "protect_resource", names_prefix = "protect_")%>%
   ggplot(aes(protect_resource, value, group = mod_f_respondent_sex))+
   geom_col(aes(fill = mod_f_respondent_sex), position = "dodge")
 
 # this looks at average scores on a five-point scale.  What about just a blanket
 # do you think this resource is important or not?
+
+final%>%
+  mutate(yn_protect_water = ifelse(protect_water > 0, 1, 0),
+         yn_protect_air = ifelse(protect_water > 0, 1, 0),
+         yn_protect_soil = ifelse(protect_water > 0, 1, 0),
+         yn_protect_comm = ifelse(protect_water > 0, 1, 0),
+         yn_protect_raw = ifelse(protect_water > 0, 1, 0),
+         yn_protect_plants = ifelse(protect_water > 0, 1, 0),
+         yn_protect_dis = ifelse(protect_water > 0, 1, 0),
+         yn_protect_med = ifelse(protect_water > 0, 1, 0),
+         .after = protect_avg)%>%
+  group_by(mod_f_respondent_sex)%>%
+  summarise(across(yn_protect_water:yn_protect_med, ~ (mean(.x, na.rm = TRUE))))%>%
+  pivot_longer(yn_protect_air:yn_protect_med, names_to = "yn_protect_resource", names_prefix = "yn_protect_")%>%
+  ggplot(aes(fct_rev(fct_reorder(yn_protect_resource, value)), value, group = mod_f_respondent_sex))+
+  geom_col(aes(fill = mod_f_respondent_sex), position = "dodge")+
+  scale_y_continuous(labels = scales::percent)+
+  guides(x = guide_axis(angle = 45))+
+  labs(title = "Percent of Men and Women who Believe Ecosystem Services are Important to Protect...",
+       x = "Resource",
+       y = "Percent")
 
 final%>%
   group_by(mod_f_respondent_sex)%>%
@@ -685,9 +723,10 @@ final%>%
   geom_density(aes(color = nrm_pract_sum))+
   facet_grid(cols = vars(nrm_pract_sum))
 
+final%>%
+  
+
 ```
-
-
 
 
 hm.  This is the first time I've gotten a good look at the roster and I'm
@@ -705,6 +744,36 @@ Ok questions for 1/12 meeting:
 1. we don't know their marital status/spouse of their partner unless we have that
   a. based on the numbers that less than 1% of HoH couples are same-sex I don't mind assuming all unknown spouses are straight, but for the credit section, I don't even know if they have a partner
 2. in the empowerment section we do know whether they have a partner, but we're missing a crucial aspect of their decision making power if we don't know whether they're in the HoH couple.  If I answered the door, I would say I'm not on the deed, but that doesn't mean women have less power in my household, it just means I'm not in the HoH couple
+
+#### looking for stuff that correlates with several unsustainable activities
+```{r}
+
+final_agriculture <- full_join(final, agriculture, by = "hhid_deid")
+
+final_agriculture <- final_agriculture%>%
+  mutate(across(c("clear_where_a", "clear_where_c", "land_kind_a", "land_kind_c"), ~replace_na(.,0)))%>%
+  mutate(clear_any = clear_where_a+clear_where_c+land_kind_a+land_kind_c)%>%
+  mutate(clear_any = ifelse(clear_any > 0, 1, 0))%>%
+  view()
+final_agriculture%>%
+  group_by(clear_any)%>%
+  ggplot(aes(as_factor(crops_1), fill = clear_any))+
+  geom_bar()
+
+#100 PERCENT BUGGY NEED TO FIX START HERE NEXT TIME YOU OPEN
+
+#define response variable
+y <- final_agriculture$clear_where_a
+
+#define matrix of predictor variables
+x <- data.matrix(mtcars[, c('mpg', 'wt', 'drat', 'qsec')])
+
+
+
+```
+
+
+
 
 
 ## Miscellaneous Planning - it's old (pre-analysis), so don't worry about this part
