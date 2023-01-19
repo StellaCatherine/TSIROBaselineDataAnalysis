@@ -618,7 +618,8 @@ roster_merge <- roster%>%
   select(hhid_deid, head_sex, spouse_sex, gender_hh_type)
 agriculture_merge <- agriculture%>%
   select(hhid_deid, nrm_pract:nrm_pract_y)
-credit_merge <- credit
+credit_merge <- credit%>%
+  select(hhid_deid, loan_ngo, loan_informal, loan_formal, loan_friend, loan_group, loan_sav, starts_with("member_"))
 resources_merge <- resources_views
 # %>%
 #   select(hhid_deid, mod_f_respondent_sex, trees_plant:trees_other_EN,
@@ -630,11 +631,9 @@ poverty_merge <- poverty_ppi
 foodsec_merge <- foodsec_fies%>%
   select(hhid_deid, fies_enough:fies_unw_avg, CSI, birth, mddw)
 empower_merge <- empower_real%>%
-  select(hhid_deid:land_name, hit_out:alone, male_potentially_present)
+  select(hhid_deid)#:land_name, hit_out:alone, male_potentially_present)
 
 final <- reduce(list(roster_merge, agriculture_merge, resources_merge, energy_merge, poverty_merge, foodsec_merge, empower_merge), full_join, by = "hhid_deid")%>%
-  # getting rid of the head_sex and spouse_sex numeric versions 
-  rename(head_sex = head_sex.x, spouse_sex = spouse_sex.x)%>%
   # how many natural resource management practices is this household using?
   mutate(nrm_pract_sum = rowSums(select(narrow, nrm_pract_a:nrm_pract_y)), .after = nrm_pract_g)%>%
   # how many hours are men vs. women spending collecting fuel
@@ -642,7 +641,7 @@ final <- reduce(list(roster_merge, agriculture_merge, resources_merge, energy_me
   mutate(fuel_men_hours = rowSums(select(narrow, fuel_men_1:fuel_men_6), na.rm = TRUE), .after= fuel_women_6)%>%
   mutate(fuel_women_hours = rowSums(select(narrow, fuel_women_1:fuel_women_6), na.rm = TRUE), .after = fuel_men_hours)%>%
   # getting rid of all the intermediate or replaced variables.
-  select(-nrm_pract, -head_sex.y, -spouse_sex.y, -fuel_men_1:fuel_women_6)%>%
+  select(-nrm_pract, -fuel_men_1:fuel_women_6)%>%
   view()
 ```
 ## Analysis
@@ -823,9 +822,54 @@ final_agriculture%>%
 #growers tend to be more and less wealthy.  Cassava growers aren't doing so hot.
 
 
+# I feel like I'm trying to get a sense of a forest by staring at the bark of a
+# single tree.
+
+```
+#### Does loss of ecosystem services correlate with resource protection?  Positively or negatively?
+```{r}
+plot_allapply <- function(choices) {
+
+   # convert to character
+   choices <- as.character(choices)
+
+   # split at comma and unlist
+   choices_split <- unlist(strsplit(choices, ","))
+
+   # convert back to factor and plot
+   plot(as.factor(choices_split))
+}
+plot_allapply(data$letter)
+
+final%>%
+  ggplot(aes(loss, ))+
+  geom_point()
+
+
 ```
 
+#### trees
 
+I'm really loving the irony that I used a platitude about not seeing the forest at the beginning of this pivot, and then that's ACTUALLY what I was missing
+
+```{r}
+
+final%>%
+  drop_na(threats_illegal_logging, wood_access)%>%
+  ggplot(aes(as_factor(wood_access), fill = as_factor(threats_illegal_logging)))+
+  geom_bar(position = "fill")
+
+final%>%
+  group_by(wood_access)%>%
+  summarise(mean(threats_illegal_logging, na.rm = TRUE))
+
+#ANOVA significance tests
+summary(lm(wood_access ~ threats_illegal_logging, data = final))
+summary(lm(wood_access ~ threats_illegal_logging, data = final))
+
+
+```
+What's going on here?  Those who did have trouble accessing firewood
 
 
 
