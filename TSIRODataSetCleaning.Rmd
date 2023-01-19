@@ -499,6 +499,20 @@ resources_views <- resources_views %>%
          "threats_farming" = "threats_big_h",
          "threats_resource_use" = "threats_big_i")
 
+resources_trees <- resources_views%>%
+  mutate(trees_why_perm = ifelse((trees_why_a == 1 |
+                                    trees_why_e == 1 |
+                                    trees_why_f == 1 |
+                                    trees_why_i == 1 |
+                                    trees_why_j == 1), 1, 0),
+         trees_why_cut = ifelse((trees_why_b == 1 |
+                                   trees_why_c == 1 |
+                                   trees_why_d == 1 |
+                                   trees_why_g == 1 |
+                                   trees_why_h == 1 |
+                                   trees_why_b == 1), 1, 0), .after = trees_other_EN)
+
+
 ```
 
 I want to look more at unsustainable resource use.  The toolkit says each activity should pick unsustainable practices to look at, so here's a list of what TSIRO collected that I think I could use:
@@ -620,7 +634,7 @@ agriculture_merge <- agriculture%>%
   select(hhid_deid, nrm_pract:nrm_pract_y)
 credit_merge <- credit%>%
   select(hhid_deid, loan_ngo, loan_informal, loan_formal, loan_friend, loan_group, loan_sav, starts_with("member_"))
-resources_merge <- resources_views
+resources_merge <- resources_trees
 # %>%
 #   select(hhid_deid, mod_f_respondent_sex, trees_plant:trees_other_EN,
 #          land_kind_a, land_kind_c, clear_where_a, clear_where_c, clear_protect, collect:fish_why, protect_water:loss_affect,
@@ -827,7 +841,7 @@ final_agriculture%>%
 
 ```
 #### Does loss of ecosystem services correlate with resource protection?  Positively or negatively?
-```{r}
+```{r ignore all this I got distracted}
 plot_allapply <- function(choices) {
 
    # convert to character
@@ -865,8 +879,19 @@ final%>%
 
 #ANOVA significance tests
 summary(lm(wood_access ~ threats_illegal_logging, data = final))
-summary(lm(wood_access ~ threats_illegal_logging, data = final))
-
+# correlation between whether they've had trouble getting wood and whether they think the environment is threatened by illegal logging 
+summary(lm(wood ~ threats_illegal_logging, data = final))
+# no correlation between how important wood is to their livelihood and whether they think the environment is threatened by illegal logging
+summary(lm(trees_plant ~ threats_illegal_logging, data = final))
+# positive correlation
+summary(lm(trees_why_perm ~ threats_illegal_logging, data = final))
+# positive correlation
+summary(lm(trees_why_cut ~ threats_illegal_logging, data = final))
+# no significant correlation
+summary(lm(wood_access ~ clear_where_a, data = final))
+# no significant correlation between difficulty collecting firewood and plans to clear forest
+summary(lm(clear_where_a ~ threats_illegal_logging, data = final))
+# absolutely no correlation between threat of illegal logging and plan to clear land
 
 ```
 What's going on here?  Those who did have trouble accessing firewood
