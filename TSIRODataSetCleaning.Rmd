@@ -13,6 +13,7 @@ library(modelr)
 library(haven)
 library(purrr)
 library(RM.weights) #used for FIES analysis
+library(corrplot)
 ```
 
 ## Importing the data
@@ -647,7 +648,7 @@ foodsec_merge <- foodsec_fies%>%
 empower_merge <- empower_real%>%
   select(hhid_deid)#:land_name, hit_out:alone, male_potentially_present)
 
-final <- reduce(list(roster_merge, agriculture_merge, resources_merge, energy_merge, poverty_merge, foodsec_merge, empower_merge), full_join, by = "hhid_deid")%>%
+final <- reduce(list(roster_merge, agriculture_merge, credit_merge, resources_merge, energy_merge, poverty_merge, foodsec_merge, empower_merge), full_join, by = "hhid_deid")%>%
   # how many natural resource management practices is this household using?
   mutate(nrm_pract_sum = rowSums(select(narrow, nrm_pract_a:nrm_pract_y)), .after = nrm_pract_g)%>%
   # how many hours are men vs. women spending collecting fuel
@@ -894,7 +895,54 @@ summary(lm(clear_where_a ~ threats_illegal_logging, data = final))
 # absolutely no correlation between threat of illegal logging and plan to clear land
 
 ```
-What's going on here?  Those who did have trouble accessing firewood
+#### Corrplots
+```{r}
+correlations_final <- final%>%
+  mutate(member_sum = rowSums(select(final, member_ag:member_other2), na.rm = TRUE), .after = member_other2)%>%
+  select(nrm_pract_a:nrm_pract_g, member_ag:member_women)%>%
+  replace(is.na(.), 0)%>%
+  rename(nrm_soil_cover = nrm_pract_a,
+         nrm_soil_fertility = nrm_pract_b,
+         nrm_agroforestry = nrm_pract_c,
+         nrm_fire_prevent = nrm_pract_d,
+         nrm_water = nrm_pract_e,
+         nrm_erosion_control = nrm_pract_f,
+         nrm_watershed = nrm_pract_g)%>%
+  view()
+
+M <- cor(correlations_final)
+
+testRes <- cor.mtest(correlations_final, conf.level = 0.95)
+
+corrplot(M, method = 'number', p.mat = testRes$p, tl.cex = 0.5, insig = 'blank', pch.cex = 0.8, pch.col = 'grey20', number.cex = 0.5, diag = FALSE, type = 'lower', is.corr = FALSE)
+# members of agriculture groups were more likely to engage in natural resource managment practices than those who aren't.
+
+
+correlations_final2 <- final%>%
+  select(nrm_pract_a:nrm_pract_g, protect_water:protect_med)%>%
+  replace(is.na(.), 0)%>%
+  rename(nrm_soil_cover = nrm_pract_a,
+         nrm_soil_fertility = nrm_pract_b,
+         nrm_agroforestry = nrm_pract_c,
+         nrm_fire_prevent = nrm_pract_d,
+         nrm_water = nrm_pract_e,
+         nrm_erosion_control = nrm_pract_f,
+         nrm_watershed = nrm_pract_g)%>%
+  view()
+
+M2 <- cor(correlations_final2)
+
+testRes2 <- cor.mtest(correlations_final2, conf.level = 0.95)
+
+r = rbind(c('protect_water', 'nrm_soil_cover', 'protect_med', 'nrm_watershed'),
+          c('nrm_soil_cover', 'protect_water', 'nrm_watershed', 'protect_med'))
+
+corrplot(M2, method = 'number', p.mat = testRes2$p, tl.cex = 0.5, insig = 'blank', pch.cex = 0.8, number.cex = 0.5, diag = FALSE, is.corr = FALSE)%>%
+  corrRect(namesMat = r)
+
+
+```
+
 
 
 
