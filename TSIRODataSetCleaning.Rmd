@@ -1160,12 +1160,33 @@ colnames(MM) <- c("Whether they're a member of a group", "Believes environment i
 
 corrplot(MM, method = 'color', p.mat = testResM$p, tl.cex = 0.5, insig = 'label_sig', sig.level = c(0.001, 0.01, 0.05), pch.cex = 0.8, number.cex = 0.5, diag = FALSE, is.corr = FALSE, type = 'lower', col = COL2('BrBG'), cl.pos = 'r', cl.cex = 0.3, tl.col = "black")
 
-
+view(final_member_compact)
 ```
 
 ```{r are fokontanies with higher group membership similarly better off?}
+member_village <- final_member%>%
+  full_join(roster)%>%
+  select(member_sum, member_any, threats, protect_sum, nrm_pract_sum, trees_plant, fies_unw_avg, mddw, ppi, fokontany_deid)%>%
+  group_by(fokontany_deid)%>%
+  summarise(member_mean = mean(member_sum, na.rm = TRUE), member_any_percent = mean(member_any, na.rm = TRUE), threats_percent = mean(threats, na.rm = TRUE), protect_mean = mean(protect_sum, na.rm = TRUE), nrm_pract_mean = mean(nrm_pract_sum, na.rm = TRUE), trees_plant_percent = mean(trees_plant, na.rm = TRUE), fies_avg = mean(fies_unw_avg, na.rm = TRUE), mddw_percent = mean(mddw, na.rm = TRUE), ppi_avg = mean(ppi, na.rm = TRUE), total_number_respondents = n())%>%
+  filter(total_number_respondents > 15)%>%
+  view()
+# we end up with 24 fokontanies.
+
+MMV <- cor(member_village)
+
+testResMV <- cor.mtest(member_village, conf.level = 0.95)
+
+corrplot(MMV, method = 'color', p.mat = testResMV$p, tl.cex = 0.5, insig = 'label_sig', sig.level = c(0.001, 0.01, 0.05), pch.cex = 0.8, number.cex = 0.5, diag = FALSE, type = 'lower', col = COL2('BrBG'), cl.pos = 'r', cl.cex = 0.3, tl.col = "black")
+
+ggplot(member_village, mapping = aes(x = member_any_percent, y = trees_plant_percent))+
+  geom_point(aes(size = total_number_respondents))+
+  geom_smooth(method = 'lm')
 
 
+# correlation with tree planting strengthens!  but it might be sketchy bc 15 is a little low to call it statstically significant - check w Kelvin.
+
+# kinda funny that fokontany_deid has statistically significant correlations...nervous laugh.
 
 ```
 
