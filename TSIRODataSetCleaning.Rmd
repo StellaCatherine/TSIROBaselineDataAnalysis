@@ -1264,10 +1264,23 @@ final_member_compact%>%
   labs(title = "Correlation between Poverty Probability and Food Insecurity by Group Membership", x = "Probability Household Is Not in Poverty", y = "Food Insecurity Experience Score")+
   scale_x_continuous(labels = scales::percent)
 
-summary(lm(fies_unw_avg~ppi, ))
+```
+#### MDDW-Religion
+
+```{r}
+
+final_member%>%
+  filter(!is.na(mddw))%>%
+  ggplot(aes(x = as_factor(member_religious), fill = as_factor(mddw)))+
+  geom_bar(position = 'fill')+
+  scale_fill_brewer(palette = "Paired", name = "", labels = c("Minimum Dietary Diversity (Women) Not Achieved", "Minimum Dietary Diversity (Women) Achieved"))+
+  labs(title = "Minimum Dietary Diversity Achieved by Women in Household By Religious Affiliation Status", y = "Percent")+
+  scale_y_continuous(labels = scales::percent)+
+  theme_minimal()+
+  theme(plot.title = element_text(size = 12))+
+  scale_x_discrete(labels = c("Non-Religious", "Religious"), name = "")
 
 ```
-
 
 #### Education
 ```{r}
