@@ -1252,6 +1252,23 @@ rsq
 # nope.
 ```
 
+```{r fies-ppi}
+
+final_member_compact%>%
+  mutate(probability_not_in_poverty = (100-ppi)/100)%>%
+  rename(how_food_insecure = fies_unw_avg)%>%
+  ggplot(aes(probability_not_in_poverty, how_food_insecure, group = as_factor(member_any), color = as_factor(member_any)))+
+  geom_smooth(method = 'lm')+
+#  geom_point()+
+  scale_color_manual(values = c("#0C7C59", "#22AED1"), name = "Group Member?", labels = c("No", "Yes"))+
+  labs(title = "Correlation between Poverty Probability and Food Insecurity by Group Membership", x = "Probability Household Is Not in Poverty", y = "Food Insecurity Experience Score")+
+  scale_x_continuous(labels = scales::percent)
+
+summary(lm(fies_unw_avg~ppi, ))
+
+```
+
+
 #### Education
 ```{r}
 
