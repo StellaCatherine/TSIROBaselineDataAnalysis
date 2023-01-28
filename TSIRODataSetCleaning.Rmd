@@ -948,10 +948,6 @@ final_gap <- final%>%
   group_by(fokontany_deid)%>%
   summarise(mean_gap = mean(protect_sum, na.rm = TRUE) - mean(nrm_pract_sum, na.rm = TRUE), mean_ppi = mean(ppi, na.rm = TRUE))
 
-final_gap <- final%>%
-  group_by(fokontany_deid)%>%
-  summarise(mean_gap = mean(protect_sum, na.rm = TRUE) - mean(nrm_pract_sum, na.rm = TRUE), mean_ppi = mean(ppi, na.rm = TRUE))
-
 summary(lm(mean_gap ~ mean_ppi, data = final_gap))
 
 final_gap_hh <- final%>%
@@ -1047,12 +1043,13 @@ rsq
 ```{r member of any group}
 # adding membership info into the most recent dataset
 
-final_member <- final_gap_hh%>%
+final_member <- final%>%
   mutate(across(member_ag:member_other2, ~replace_na(.,0)))
+
 final_member<- final_member%>%
+  mutate(threats_sum = rowSums(select(final_member, threats_illegal_logging:threats_resource_use), na.rm = TRUE), .after = threats_other_EN)%>%
   mutate(member_sum = rowSums(select(final_member, member_ag:member_other2)), .after = member_other2)%>%
-  mutate(member_any = ifelse((member_sum>0), 1, 0))%>%
-  mutate(threats_sum = rowSums(select()))
+  mutate(member_any = ifelse((member_sum>0), 1, 0))
 
 #define response variable
 y <- final_member$member_any
@@ -1091,10 +1088,6 @@ sse <- sum((y_predicted - y)^2)
 rsq <- 1 - sse/sst
 rsq
 
-
-final_member <- final_member%>%
-  mutate(threats_sum = rowSums(select(final_member, threats_illegal_logging:threats_resource_use), na.rm = TRUE), .after = threats_other_EN)%>%
-  mutate(across(threats_illegal_logging:threats_resource_use, ~replace_na(., 0)))
 
 final_member_compact <- final_member%>%
   select(member_sum, member_any, threats, threats_sum, protect_sum, nrm_pract_sum, trees_plant, loss, fies_unw_avg, mddw, ppi)%>%
@@ -1205,7 +1198,7 @@ MG <- cor(member_groups)
 
 testResMG <- cor.mtest(member_groups, conf.level = 0.95)
 
-corrplot(MG[11:17, 1:10, drop=FALSE], method = 'color', p.mat = testResMG$p[11:17,1:10], tl.cex = 0.5, insig = 'label_sig', sig.level = c(0.001, 0.01, 0.05), pch.cex = 0.8, number.cex = 0.5, diag = FALSE, is.corr = FALSE, col = COL2('BrBG'), cl.pos = 'r', cl.cex = 0.3, tl.col = "black")
+corrplot(MG[11:17, 1:10, drop=FALSE], method = 'color', p.mat = testResMG$p[11:17,1:10], tl.cex = 0.5, insig = 'label_sig', sig.level = c(0.001, 0.01, 0.05), pch.cex = 0.8, number.cex = 0.5, is.corr = FALSE, col = COL2('BrBG'), cl.pos = 'r', cl.cex = 0.3, tl.col = "black")
 
 
 ```
@@ -1264,10 +1257,35 @@ final_member_compact%>%
   labs(title = "Correlation between Poverty Probability and Food Insecurity by Group Membership", x = "Probability Household Is Not in Poverty", y = "Food Insecurity Experience Score")+
   scale_x_continuous(labels = scales::percent)
 
-```
-#### MDDW-Religion
+final_member_compact%>%
+  mutate(probability_not_in_poverty = (100-ppi)/100)%>%
+  drop_na(mddw)%>%
+  drop_na(probability_not_in_poverty)%>%
+  ggplot(aes(as_factor(member_any), probability_not_in_poverty, color = as_factor(mddw), fill = as_factor(mddw)))+
+  geom_dotplot(binaxis = "y", stackdir = "center")+
+#  geom_point()+
+  scale_fill_manual(values = c("#0C7C59", "#22AED1"), name = "MDDW Achieved?", labels = c("No", "Yes"))+
+  scale_color_manual(values = c("#0C7C59", "#22AED1"), name = "MDDW Achieved?", labels = c("No", "Yes"))+
+#  labs(title = "", x = "", y = "")+
+  scale_y_continuous(labels = scales::percent)
 
-```{r}
+final_member_compact%>%
+  add_column(reproductive_females = tsiro_fm_data$reproductive_females)%>%
+  group_by(member_any, mddw)%>%
+  summarise(n = n())
+
+final_member%>%
+  select(-member_sum)%>%
+  summarise(across(starts_with("member_"), ~sum(.x)))%>%
+  pivot_longer(cols = everything(), names_to = "group", values_to = "count")%>%
+  mutate(percent = count/754)%>%
+  arrange(desc(count))
+
+#mutual, trade not enough for statistical significance
+
+```
+
+```{r MDDW-Religion}
 
 final_member%>%
   filter(!is.na(mddw))%>%
@@ -1279,6 +1297,37 @@ final_member%>%
   theme_minimal()+
   theme(plot.title = element_text(size = 12))+
   scale_x_discrete(labels = c("Non-Religious", "Religious"), name = "")
+
+final_member%>%
+  group_by(member_any, mddw)%>%
+  summarise(n())
+```
+
+```{r nrm look}
+
+final_member_nrm <- final_member%>%
+  mutate(nrm_pract_any = rowSums(select(final_member, nrm_pract_a:nrm_pract_g)))%>%
+  mutate(nrm_pract_any = ifelse(nrm_pract_any > 0, 1, 0))
+
+final_member_nrm%>%
+  select(-nrm_pract_sum)%>%
+  summarise(across(starts_with("nrm_pract_"), ~sum(.x, na.rm = TRUE)))%>%
+  pivot_longer(cols = everything(), names_to = "group", values_to = "count")%>%
+  mutate(percent = count/754)%>%
+  arrange(desc(count))
+
+summary(lm(nrm_pract_any ~ member_any, final_member_nrm))
+summary(lm(nrm_pract_sum ~ member_any, final_member_nrm))
+
+final_nrm_corrplot <- final_member_nrm %>%
+  select(starts_with("nrm_pract_"), starts_with("member_"), -ends_with("sum"), -ends_with("any"))%>%
+  replace(is.na(.), 0)
+
+NRM <- cor(final_nrm_corrplot)
+
+testResNRM <- cor.mtest(final_nrm_corrplot, conf.level = 0.95)
+
+corrplot(NRM[9:18, 1:8, drop=FALSE], method = 'color', p.mat = testResNRM$p[9:18, 1:8], tl.cex = 0.5, insig = 'label_sig', sig.level = c(0.001, 0.01, 0.05), pch.cex = 0.8, number.cex = 0.5,  is.corr = FALSE, col = COL2('BrBG'), cl.pos = 'r', cl.cex = 0.3, tl.col = "black")
 
 ```
 
@@ -1332,7 +1381,6 @@ rsq
 
 
 final_ed <- final_member%>%
-  mutate(threats_sum = rowSums(select(final_member, threats_illegal_logging:threats_resource_use), na.rm = TRUE), .after = threats_other_EN)%>%
   full_join(roster, by = 'hhid_deid')%>%
   drop_na(ed_level_head)%>%
   mutate(across(threats_illegal_logging:threats_resource_use, ~replace_na(., 0)))%>%
@@ -1411,6 +1459,7 @@ colnames(ME) <- c("Education level of household head", "Whether they're a member
 corrplot(ME, method = 'color', p.mat = testResEd$p, tl.cex = 0.5, insig = 'label_sig', sig.level = c(0.001, 0.01, 0.05), pch.cex = 0.8, number.cex = 0.5, diag = FALSE, is.corr = FALSE, type = 'lower', col = COL2('BrBG'), cl.pos = 'r', cl.cex = 0.3, tl.col = "black")
 
 ```
+
 #### Trees
 
 okay last area
