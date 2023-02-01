@@ -1489,3 +1489,26 @@ Definitely incorporate score on how much they care about protecting the environm
 Is it possible to make a sustainability index?  Should probably incorporate harmful activities (how much deforestation, weighted percentage of unclean fuel use, destructive agriculture practices) and helpful activities (reforestation, resource conservation, sustainably agriculture practices)
 
 Is there a good poverty indicator?  Maybe ask Kelvin's advice on this
+
+
+
+```{r scratch work on final article}
+final_member%>%
+  group_by(member_any)%>%
+  summarise(mean(protect_sum, na.rm = TRUE), n())
+
+final_member%>%
+  group_by(member_any)%>%
+  summarise(mean(threats, na.rm = TRUE), n())
+
+final_member%>%
+  group_by(member_any)%>%
+  summarise(mean(nrm_pract_sum, na.rm = TRUE), n())
+
+final_member%>%
+  filter(protect_sum > -5)%>%
+  ggplot(aes(protect_sum, nrm_pract_sum, fill = as_factor(member_any), color = as_factor(member_any)))+
+  geom_point(position = 'jitter')+
+  geom_smooth(method = 'lm')
+```
+
