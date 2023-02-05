@@ -12,7 +12,6 @@ library(moderndive)
 library(modelr)
 library(haven)
 library(purrr)
-library(RM.weights) #used for FIES analysis
 library(corrplot)
 ```
 
@@ -24,84 +23,6 @@ tsiro_raw_data <- read_dta("TSIRO_baseline_public_gender.dta")
 view(tsiro_raw_data)
 ```
 
-## Gender breakdown
-
-In this block, we're counting the number of men and women who are heads of household, spouses, and respondents to each module and figuring out which modules had more male respondents and which had more female respondents.
-
-```{r learning a bit more about gender respondents}
-
-head_sex_count_table <- tsiro_raw_data %>%
-  group_by(head_sex)%>%
-  count(head_sex)%>%
-  rename(sex = head_sex, head_sex = n)
-#view(head_sex_count_table)
-  
-spouse_sex_count_table <- tsiro_raw_data %>%
-  group_by(spouse_sex)%>%
-  count(spouse_sex)%>%
-  rename(sex = spouse_sex, spouse_sex = n)
-#view(spouse_sex_count_table)
-
-b_sex_count_table <- tsiro_raw_data %>%
-  group_by(mod_b_respondent_sex)%>%
-  count(mod_b_respondent_sex)%>%
-  rename(sex = mod_b_respondent_sex, roster_respondent_sex = n)
-
-d_sex_count_table <- tsiro_raw_data %>%
-  group_by(mod_d_respondent_sex)%>%
-  count(mod_d_respondent_sex)%>%
-  rename(sex = mod_d_respondent_sex, agriculture_respondent_sex = n)
-
-e_sex_count_table <- tsiro_raw_data %>%
-  group_by(mod_e_respondent_sex)%>%
-  count(mod_e_respondent_sex)%>%
-  rename(sex = mod_e_respondent_sex, credit_respondent_sex = n)
-
-f_sex_count_table <- tsiro_raw_data %>%
-  group_by(mod_f_respondent_sex)%>%
-  count(mod_f_respondent_sex)%>%
-  rename(sex = mod_f_respondent_sex, nat_resources_respondent_sex = n)
-
-g_sex_count_table <- tsiro_raw_data %>%
-  group_by(mod_g_respondent_sex)%>%
-  count(mod_g_respondent_sex)%>%
-  rename(sex = mod_g_respondent_sex, energy_respondent_sex = n)
-
-i_sex_count_table <- tsiro_raw_data %>%
-  group_by(mod_i_respondent_sex)%>%
-  count(mod_i_respondent_sex)%>%
-  rename(poverty_respondent_sex = n)
-
-c_sex_count_table <- tsiro_raw_data %>%
-  group_by(mod_c_respondent_sex)%>%
-  count(mod_c_respondent_sex)%>%
-  rename(sex = mod_c_respondent_sex, health_respondent_sex = n)
-
-c_wdd_sex_count_table <- tsiro_raw_data %>%
-  group_by(mod_c_wdd_respondent_sex)%>%
-  count(mod_c_wdd_respondent_sex)%>%
-  rename(sex = mod_c_wdd_respondent_sex, wdd_respondent_sex = n)
-
-h_sex_count_table <- tsiro_raw_data %>%
-  group_by(mod_h_respondent_sex)%>%
-  count(mod_h_respondent_sex)%>%
-  rename(sex = mod_h_respondent_sex, gender_respondent_sex = n)
-#view(h_sex_count_table)
-
-
-sex_count_table <- list(head_sex_count_table, spouse_sex_count_table, b_sex_count_table, d_sex_count_table, e_sex_count_table, f_sex_count_table, g_sex_count_table, c_sex_count_table, c_wdd_sex_count_table, h_sex_count_table)%>%
-  reduce(full_join, by = "sex")%>%
-  mutate(sex = toString(sex))%>%
-  mutate(sex = ifelse(sex=="1", "M", sex))%>%
-  mutate(sex = ifelse(sex=="2", "F", sex))%>%
-  #There's 100% a cleaner way to do this
-  replace(is.na(.), 0)%>%
-  pivot_longer(cols = 2:11, names_to = "categories", values_to = "amount")%>%
-  pivot_wider(names_from = sex, values_from = amount)%>%
-  arrange(desc(F))
-
-#view(sex_count_table)
-```
 
 ## Breaking down and cleaning the dataset
 
@@ -136,342 +57,6 @@ empower <- select(tsiro_fm_data, hhid_deid, head_sex,spouse_sex, mod_h_responden
 ```
 
 
-#### Adding gender back into credit section
-
-starting w some planning...(and thinking out loud in R markdown)
-
-basically...
-
-M+a1 = M
-
-  I, a man, made this decision.  Possibly by myself and possibly with my wife.
-  
-M+a0 = not M
-
-  I, a man, did not make this decision.  Possibilities: wife made this decision, decision wasn't made at all.
-  
-F+a1 = F
-
-  I, a woman, made this decision.  Possibly by myself and possibly with my husband.
-  
-F+a0 = not F
-
-  I, a woman, did not make this decision.  Possibilities: husband made this decision, decision wasn't made at all
-  
-M+b1 = F
-
-  My spouse, theoretically a woman, made this decision.  Possibilities: I made it with her or she made it by herself.
-  update: not necessarily a woman.  Need to double-check spouse's gender.
-  
-M+b0 = not F
-
-  My spouse, theoretically a woman, did not make this decision.  Possibilities: I made it without her or neither of us made it.
-  
-F+b1 = M
-
-F+b0 = not M
-
-realizing this assumes every couple in the dataset is straight.  going to check real quick to make sure this is an assumption I can make.  update: it's not.  love that they've found love but darn it messes up my math.
-
-after, I'm imagining each set of columns looking like:
-
-did you borrow from x?
-
-options: 1 (yes), 0 (no)
-
-who made the decision to borrow from x?
-
-options: "M", "F", "MF", "N", "S", "MS", "FS", "MFS", where N is no one and S is someone else (inside or outside household)
-
-factor it by power of the woman in the decision? kinda hard to define, so no
-
-who decided how to use money from x?
-
-options: "M", "F", "MF", "N", "S", "MS", "FS", "MFS", where N is no one and S is someone else (inside or outside household)
-
-etc. for each institution
-
-ok how do I want to go about this?
-
-Might be easiest to create a column M or 0, F or 0, S or 0, and then add them together.  Any still 0 will become N.
-
-Don't bother w columns where the value is 0 - it doesn't provide info that isn't provided elsewhere.
-
-change self to M, F, and 0.  change spouse to M, F, and 0.  change both other columns to S and 0.  concatenate all four into one column.
-
-How to tackle the spouse column?
-
-![scratchpad discrete math](IMG_6699.jpg)
-
-```{r}
-non_straight_households <- tsiro_fm_data%>%
-  filter(head_sex == spouse_sex)
-#view(non_straight_households)
-#I consider myself an ally but...darnit.  the gays are messing up my math.
-#let's check if they actually borrowed money - ie if I actually have to adjust the code.
-non_straight_households_credit <- non_straight_households%>%
-  select(mod_e_respondent_sex, loan_ngo:assist_inputs)
-#view(non_straight_households_credit)
-#ok one of the MM households borrowed from a friend and both spouses contributed to the decision.  I'll structure the code around this.
-#I'll take all this out (the above stuff) later, just keeping it for reference now.
-
-credit_gender <- credit %>%
-#changes borrow_(institution)_y to say whether they did (1) or didn't (0) borrow from the institution.
-  mutate(borrow_ngo_y = abs(replace_na(borrow_ngo_y, 1)-1), borrow_formal_y = abs(replace_na(borrow_formal_y, 1)-1), borrow_informal_y = abs(replace_na(borrow_informal_y, 1)-1), borrow_friend_y = abs(replace_na(borrow_friend_y, 1)-1), borrow_group_y = abs(replace_na(borrow_group_y, 1)-1), borrow_sav_y = abs(replace_na(borrow_sav_y, 1)-1))
-
-#get ready for the world's longest pipe - I spent two days trying to find a way
-#to avoid this, to no avail.
-credit_gender_b <- tsiro_raw_data%>%
-  select(head_sex, spouse_sex, mod_e_respondent_sex, loan_ngo:assist_inputs)%>%
-  mutate(borrow_ngo_y = abs(replace_na(borrow_ngo_y, 1)-1),
-         use_ngo_y = abs(replace_na(use_ngo_y, 1)-1),
-         borrow_formal_y = abs(replace_na(borrow_formal_y, 1)-1), 
-         use_formal_y = abs(replace_na(use_formal_y, 1)-1),
-         borrow_informal_y = abs(replace_na(borrow_informal_y, 1)-1), 
-         use_informal_y = abs(replace_na(use_informal_y, 1)-1),
-         borrow_friend_y = abs(replace_na(borrow_friend_y, 1)-1), 
-         use_friend_y = abs(replace_na(use_friend_y, 1)-1),
-         borrow_group_y = abs(replace_na(borrow_group_y, 1)-1), 
-         use_group_y = abs(replace_na(use_group_y, 1)-1),
-         borrow_sav_y = abs(replace_na(borrow_sav_y, 1)-1),
-         use_sav_y = abs(replace_na(use_sav_y, 1)-1))%>%
-  # repeat starting here
-  mutate(borrow_ngo_self = borrow_ngo_a*mod_e_respondent_sex, 
-         borrow_ngo_spouse = abs(((head_sex+spouse_sex+mod_e_respondent_sex)%%2)-2)*borrow_ngo_b, 
-         borrow_ngo_inside = borrow_ngo_c*3, 
-         borrow_ngo_outside = borrow_ngo_d*4, .before = use_ngo)%>%
-  mutate(across(c("borrow_ngo_self", "borrow_ngo_spouse", "borrow_ngo_inside",
-        "borrow_ngo_outside"), as.character))%>%
-  mutate_at(vars(borrow_ngo_self:borrow_ngo_outside), ~ str_replace(., "1", "M"))%>%
-  mutate_at(vars(borrow_ngo_self:borrow_ngo_outside), ~ str_replace(., "2", "F"))%>%
-  mutate_at(vars(borrow_ngo_self:borrow_ngo_outside), ~ str_replace(., "3", "I"))%>%
-  mutate_at(vars(borrow_ngo_self:borrow_ngo_outside), ~ str_replace(., "4", "O"))%>%
-  mutate_at(vars(borrow_ngo_self:borrow_ngo_outside), ~ str_replace(., "0", ""))%>%
-  unite(borrow_ngo_gender, borrow_ngo_self, borrow_ngo_spouse, borrow_ngo_inside,
-        borrow_ngo_outside, sep = "", na.rm = TRUE)%>%
-  mutate(borrow_ngo_gender = sapply(lapply(strsplit(borrow_ngo_gender, NULL),
-        sort), paste, collapse=""))%>%
-  # repeat starting here
-  mutate(use_ngo_self = use_ngo_a*mod_e_respondent_sex, 
-         use_ngo_spouse = abs(((head_sex+spouse_sex+mod_e_respondent_sex)%%2)-2)*use_ngo_b, 
-         use_ngo_inside = use_ngo_c*3, 
-         use_ngo_outside = use_ngo_d*4, .before = loan_informal)%>%
-  mutate(across(c("use_ngo_self", "use_ngo_spouse", "use_ngo_inside",
-        "use_ngo_outside"), as.character))%>%
-  mutate_at(vars(use_ngo_self:use_ngo_outside), ~ str_replace(., "1", "M"))%>%
-  mutate_at(vars(use_ngo_self:use_ngo_outside), ~ str_replace(., "2", "F"))%>%
-  mutate_at(vars(use_ngo_self:use_ngo_outside), ~ str_replace(., "3", "I"))%>%
-  mutate_at(vars(use_ngo_self:use_ngo_outside), ~ str_replace(., "4", "O"))%>%
-  mutate_at(vars(use_ngo_self:use_ngo_outside), ~ str_replace(., "0", ""))%>%
-  unite(use_ngo_gender, use_ngo_self, use_ngo_spouse, use_ngo_inside,
-        use_ngo_outside, sep = "", na.rm = TRUE)%>%
-  mutate(use_ngo_gender = sapply(lapply(strsplit(use_ngo_gender, NULL),
-        sort), paste, collapse=""))%>%
-  # repeat starting here
-  mutate(borrow_informal_self = borrow_informal_a*mod_e_respondent_sex, 
-         borrow_informal_spouse = abs(((head_sex+spouse_sex+mod_e_respondent_sex)%%2)-2)*borrow_informal_b, 
-         borrow_informal_inside = borrow_informal_c*3, 
-         borrow_informal_outside = borrow_informal_d*4, .before = use_informal)%>%
-  mutate(across(c("borrow_informal_self", "borrow_informal_spouse", "borrow_informal_inside",
-        "borrow_informal_outside"), as.character))%>%
-  mutate_at(vars(borrow_informal_self:borrow_informal_outside), ~ str_replace(., "1", "M"))%>%
-  mutate_at(vars(borrow_informal_self:borrow_informal_outside), ~ str_replace(., "2", "F"))%>%
-  mutate_at(vars(borrow_informal_self:borrow_informal_outside), ~ str_replace(., "3", "I"))%>%
-  mutate_at(vars(borrow_informal_self:borrow_informal_outside), ~ str_replace(., "4", "O"))%>%
-  mutate_at(vars(borrow_informal_self:borrow_informal_outside), ~ str_replace(., "0", ""))%>%
-  unite(borrow_informal_gender, borrow_informal_self, borrow_informal_spouse, borrow_informal_inside,
-        borrow_informal_outside, sep = "", na.rm = TRUE)%>%
-  mutate(borrow_informal_gender = sapply(lapply(strsplit(borrow_informal_gender, NULL),
-        sort), paste, collapse=""))%>%
-  # repeat starting here
-  mutate(use_informal_self = use_informal_a*mod_e_respondent_sex, 
-         use_informal_spouse = abs(((head_sex+spouse_sex+mod_e_respondent_sex)%%2)-2)*use_informal_b, 
-         use_informal_inside = use_informal_c*3, 
-         use_informal_outside = use_informal_d*4, .before = loan_formal)%>%
-  mutate(across(c("use_informal_self", "use_informal_spouse", "use_informal_inside",
-        "use_informal_outside"), as.character))%>%
-  mutate_at(vars(use_informal_self:use_informal_outside), ~ str_replace(., "1", "M"))%>%
-  mutate_at(vars(use_informal_self:use_informal_outside), ~ str_replace(., "2", "F"))%>%
-  mutate_at(vars(use_informal_self:use_informal_outside), ~ str_replace(., "3", "I"))%>%
-  mutate_at(vars(use_informal_self:use_informal_outside), ~ str_replace(., "4", "O"))%>%
-  mutate_at(vars(use_informal_self:use_informal_outside), ~ str_replace(., "0", ""))%>%
-  unite(use_informal_gender, use_informal_self, use_informal_spouse, use_informal_inside,
-        use_informal_outside, sep = "", na.rm = TRUE)%>%
-  mutate(use_informal_gender = sapply(lapply(strsplit(use_informal_gender, NULL),
-        sort), paste, collapse=""))%>%
-  # repeat starting here
-  mutate(borrow_formal_self = borrow_formal_a*mod_e_respondent_sex, 
-         borrow_formal_spouse = abs(((head_sex+spouse_sex+mod_e_respondent_sex)%%2)-2)*borrow_formal_b, 
-         borrow_formal_inside = borrow_formal_c*3, 
-         borrow_formal_outside = borrow_formal_d*4, .before = use_formal)%>%
-  mutate(across(c("borrow_formal_self", "borrow_formal_spouse", "borrow_formal_inside",
-        "borrow_formal_outside"), as.character))%>%
-  mutate_at(vars(borrow_formal_self:borrow_formal_outside), ~ str_replace(., "1", "M"))%>%
-  mutate_at(vars(borrow_formal_self:borrow_formal_outside), ~ str_replace(., "2", "F"))%>%
-  mutate_at(vars(borrow_formal_self:borrow_formal_outside), ~ str_replace(., "3", "I"))%>%
-  mutate_at(vars(borrow_formal_self:borrow_formal_outside), ~ str_replace(., "4", "O"))%>%
-  mutate_at(vars(borrow_formal_self:borrow_formal_outside), ~ str_replace(., "0", ""))%>%
-  unite(borrow_formal_gender, borrow_formal_self, borrow_formal_spouse, borrow_formal_inside,
-        borrow_formal_outside, sep = "", na.rm = TRUE)%>%
-  mutate(borrow_formal_gender = sapply(lapply(strsplit(borrow_formal_gender, NULL),
-        sort), paste, collapse=""))%>%
-  # repeat starting here
-  mutate(use_formal_self = use_formal_a*mod_e_respondent_sex, 
-         use_formal_spouse = abs(((head_sex+spouse_sex+mod_e_respondent_sex)%%2)-2)*use_formal_b, 
-         use_formal_inside = use_formal_c*3, 
-         use_formal_outside = use_formal_d*4, .before = loan_group)%>%
-  mutate(across(c("use_formal_self", "use_formal_spouse", "use_formal_inside",
-        "use_formal_outside"), as.character))%>%
-  mutate_at(vars(use_formal_self:use_formal_outside), ~ str_replace(., "1", "M"))%>%
-  mutate_at(vars(use_formal_self:use_formal_outside), ~ str_replace(., "2", "F"))%>%
-  mutate_at(vars(use_formal_self:use_formal_outside), ~ str_replace(., "3", "I"))%>%
-  mutate_at(vars(use_formal_self:use_formal_outside), ~ str_replace(., "4", "O"))%>%
-  mutate_at(vars(use_formal_self:use_formal_outside), ~ str_replace(., "0", ""))%>%
-  unite(use_formal_gender, use_formal_self, use_formal_spouse, use_formal_inside,
-        use_formal_outside, sep = "", na.rm = TRUE)%>%
-  mutate(use_formal_gender = sapply(lapply(strsplit(use_formal_gender, NULL),
-        sort), paste, collapse=""))%>%
-  # repeat starting here
-  mutate(borrow_group_self = borrow_group_a*mod_e_respondent_sex, 
-         borrow_group_spouse = abs(((head_sex+spouse_sex+mod_e_respondent_sex)%%2)-2)*borrow_group_b, 
-         borrow_group_inside = borrow_group_c*3, 
-         borrow_group_outside = borrow_group_d*4, .before = use_group)%>%
-  mutate(across(c("borrow_group_self", "borrow_group_spouse", "borrow_group_inside",
-        "borrow_group_outside"), as.character))%>%
-  mutate_at(vars(borrow_group_self:borrow_group_outside), ~ str_replace(., "1", "M"))%>%
-  mutate_at(vars(borrow_group_self:borrow_group_outside), ~ str_replace(., "2", "F"))%>%
-  mutate_at(vars(borrow_group_self:borrow_group_outside), ~ str_replace(., "3", "I"))%>%
-  mutate_at(vars(borrow_group_self:borrow_group_outside), ~ str_replace(., "4", "O"))%>%
-  mutate_at(vars(borrow_group_self:borrow_group_outside), ~ str_replace(., "0", ""))%>%
-  unite(borrow_group_gender, borrow_group_self, borrow_group_spouse, borrow_group_inside,
-        borrow_group_outside, sep = "", na.rm = TRUE)%>%
-  mutate(borrow_group_gender = sapply(lapply(strsplit(borrow_group_gender, NULL),
-        sort), paste, collapse=""))%>%
-  # repeat starting here
-  mutate(use_group_self = use_group_a*mod_e_respondent_sex, 
-         use_group_spouse = abs(((head_sex+spouse_sex+mod_e_respondent_sex)%%2)-2)*use_group_b, 
-         use_group_inside = use_group_c*3, 
-         use_group_outside = use_group_d*4, .before = loan_sav)%>%
-  mutate(across(c("use_group_self", "use_group_spouse", "use_group_inside",
-        "use_group_outside"), as.character))%>%
-  mutate_at(vars(use_group_self:use_group_outside), ~ str_replace(., "1", "M"))%>%
-  mutate_at(vars(use_group_self:use_group_outside), ~ str_replace(., "2", "F"))%>%
-  mutate_at(vars(use_group_self:use_group_outside), ~ str_replace(., "3", "I"))%>%
-  mutate_at(vars(use_group_self:use_group_outside), ~ str_replace(., "4", "O"))%>%
-  mutate_at(vars(use_group_self:use_group_outside), ~ str_replace(., "0", ""))%>%
-  unite(use_group_gender, use_group_self, use_group_spouse, use_group_inside,
-        use_group_outside, sep = "", na.rm = TRUE)%>%
-  mutate(use_group_gender = sapply(lapply(strsplit(use_group_gender, NULL),
-        sort), paste, collapse=""))%>%
-  # repeat starting here
-  mutate(borrow_sav_self = borrow_sav_a*mod_e_respondent_sex, 
-         borrow_sav_spouse = abs(((head_sex+spouse_sex+mod_e_respondent_sex)%%2)-2)*borrow_sav_b, 
-         borrow_sav_inside = borrow_sav_c*3, 
-         borrow_sav_outside = borrow_sav_d*4, .before = loan_sav)%>%
-  mutate(across(c("borrow_sav_self", "borrow_sav_spouse", "borrow_sav_inside",
-        "borrow_sav_outside"), as.character))%>%
-  mutate_at(vars(borrow_sav_self:borrow_sav_outside), ~ str_replace(., "1", "M"))%>%
-  mutate_at(vars(borrow_sav_self:borrow_sav_outside), ~ str_replace(., "2", "F"))%>%
-  mutate_at(vars(borrow_sav_self:borrow_sav_outside), ~ str_replace(., "3", "I"))%>%
-  mutate_at(vars(borrow_sav_self:borrow_sav_outside), ~ str_replace(., "4", "O"))%>%
-  mutate_at(vars(borrow_sav_self:borrow_sav_outside), ~ str_replace(., "0", ""))%>%
-  unite(borrow_sav_gender, borrow_sav_self, borrow_sav_spouse, borrow_sav_inside,
-        borrow_sav_outside, sep = "", na.rm = TRUE)%>%
-  mutate(borrow_sav_gender = sapply(lapply(strsplit(borrow_sav_gender, NULL),
-        sort), paste, collapse=""))%>%
-  # repeat starting here
-  mutate(use_sav_self = use_sav_a*mod_e_respondent_sex, 
-         use_sav_spouse = abs(((head_sex+spouse_sex+mod_e_respondent_sex)%%2)-2)*use_sav_b, 
-         use_sav_inside = use_sav_c*3, 
-         use_sav_outside = use_sav_d*4, .before = group_ag)%>%
-  mutate(across(c("use_sav_self", "use_sav_spouse", "use_sav_inside",
-        "use_sav_outside"), as.character))%>%
-  mutate_at(vars(use_sav_self:use_sav_outside), ~ str_replace(., "1", "M"))%>%
-  mutate_at(vars(use_sav_self:use_sav_outside), ~ str_replace(., "2", "F"))%>%
-  mutate_at(vars(use_sav_self:use_sav_outside), ~ str_replace(., "3", "I"))%>%
-  mutate_at(vars(use_sav_self:use_sav_outside), ~ str_replace(., "4", "O"))%>%
-  mutate_at(vars(use_sav_self:use_sav_outside), ~ str_replace(., "0", ""))%>%
-  unite(use_sav_gender, use_sav_self, use_sav_spouse, use_sav_inside,
-        use_sav_outside, sep = "", na.rm = TRUE)%>%
-  mutate(use_sav_gender = sapply(lapply(strsplit(use_sav_gender, NULL),
-        sort), paste, collapse=""))
- view(credit_gender_b)
- credit_gender_narrow <- credit_gender_b %>%
-   select(head_sex:mod_e_respondent_sex, ends_with("gender"), ends_with("_y"), group_ag:assist_inputs)
- view(credit_gender_narrow)
- 
- credit_gender_consolidated <- credit_gender_narrow%>%
-   unite(decision_makers, ends_with("gender"), sep="")%>%
-   mutate(female_decision_maker = ifelse(str_detect(decision_makers, "F"), 1, 0), male_decision_maker = ifelse(str_detect(decision_makers, "M"), 1, 0), .after = decision_makers)%>%
-   view()
- 
-#summarize(credit_gender_consolidated, women = sum(female_decision_maker), men = sum(male_decision_maker))
-#more female than male decision_makers, but the gap decreases when you take out single-gender households (below).
-
-# credit_gender_consolidated%>%
-#   filter((head_sex+spouse_sex)==3)%>%
-#   summarize(sum(female_decision_maker), sum(male_decision_maker))
-
-credit_gender_less_consolidated <- credit_gender_narrow %>%
-   unite(decision_makers_borrow, ends_with("gender") & starts_with("borrow"), sep="")%>%
-   unite(decision_makers_use, ends_with("gender") & starts_with("use"), sep="")%>%
-   mutate(female_decision_maker_borrow = ifelse(str_detect(decision_makers_borrow, "F"), 1, 0),
-          male_decision_maker_borrow = ifelse(str_detect(decision_makers_borrow, "M"), 1, 0),
-          female_decision_maker_use = ifelse(str_detect(decision_makers_use, "F"), 1, 0),
-          male_decision_maker_use = ifelse(str_detect(decision_makers_use, "M"), 1, 0),
-          .after = decision_makers_use)%>%
-   view()
-
-# credit_gender_less_consolidated%>%
-#   summarize(sum(female_decision_maker_borrow), sum(male_decision_maker_borrow), sum(female_decision_maker_use), sum(male_decision_maker_use))
-# #more women have a say in how money is used than whether it is borrowed.
-
-# credit_gender_less_consolidated%>%
-#   filter((head_sex + spouse_sex) == 3)%>%
-#   summarize(sum(female_decision_maker_borrow), sum(male_decision_maker_borrow), sum(female_decision_maker_use), sum(male_decision_maker_use))
-# #once we reduce to two-gender households, gap shrinks and we see that while a
-# #roughly equal number of men and women decide on whether to borrow, more women
-# #(slightly) decide how it is spent.
-
-credit_gender_narrow%>%
-   filter((head_sex + spouse_sex) == 3, borrow_ngo_gender != "")%>%
-  glimpse()%>%
-   ggplot()+
-   geom_bar(mapping = aes(borrow_ngo_gender))
-
-credit_gender_narrow%>%
-   filter((head_sex + spouse_sex) == 3, use_ngo_gender != "")%>%
-  glimpse()%>%
-   ggplot()+
-   geom_bar(mapping = aes(use_ngo_gender))
-   
-```
-
-#### Exploring the empowerment dataset
-
-Okay so a problem coming up here is that in all my adjustments of "you or your partner" data into gender data, I'm assuming the respondent is either the head of household or their spouse, but I have proof in some cases that that assumption is not legitimate, so where else might it not be legitimate?
-
-```{r}
-#view(empower)
-#glimpse(empower)
-empower_real <- empower%>%
-  drop_na(mod_h_respondent_sex)%>%
-  arrange(desc(mod_h_respondent_sex), partner)%>%
-  mutate(male_respondent = ifelse(mod_h_respondent_sex == "M", 1, 0))%>%
-  mutate(male_potentially_present = alone + male_respondent)%>%
-  filter(mod_h_respondent_sex == "F" | (spouse_sex == "F" & partner == 1))%>%
-  arrange(head_sex, spouse_sex, partner)%>%
-  view()
-#Making sure there is a woman in the household whom the respondent is discussing.
-#Filters out men responding who have no wives or whose partners' genders we don't
-#know.
-#Adds column indicating whether woman in household was speaking for herself with
-#no one else present.
-
-
-
-```
-
 #### Views on the environment score
 
 ```{r}
@@ -484,7 +69,6 @@ resources_views <- resources%>%
 resources_views <- resources_views %>%
   mutate(protect_avg = rowMeans(select(resources_views, starts_with("protect_")), na.rm = TRUE), .after = protect_med)%>%
   mutate(protect_sum = protect_avg*8)
-# glimpse()
 # Calculating priority indicator "Average score measuring the perceived
 # importance of protecting nature and the environment".
 # Asks about the importance of 8 ecosystem services relevant to this population.
@@ -513,7 +97,6 @@ resources_trees <- resources_views%>%
                                    trees_why_h == 1 |
                                    trees_why_b == 1), 1, 0), .after = trees_other_EN)
 
-
 ```
 
 I want to look more at unsustainable resource use.  The toolkit says each activity should pick unsustainable practices to look at, so here's a list of what TSIRO collected that I think I could use:
@@ -530,8 +113,6 @@ perception of ecosystem status in the future? (could take this from threats data
 who makes decisions on engaging in the activity and who engages most in the activity can be disaggregated by gender
 
 Primary indicator here is whether the households engage in the activity, other stuff is just for added context
-
-
 
 #### Calculating FIES Percentage
 
@@ -560,12 +141,7 @@ poverty_ppi <- poverty%>%
 
 summarise(poverty_ppi, across(everything(), ~ sum(is.na(.x))))
 
-# I'm using children 5-18 as a stand-in for children 6-11 rn, but that's illegal
-# technically.  Will I have to go through IRB review process just to get their
-# age group?
-
 ```
-
 
 ## Creating narrow dataset
 
@@ -605,7 +181,8 @@ I'm going to want to sum fuel_men variables and fuel_women variables, but might 
 
 #### poverty
 
-If I could figure out how they calculated PPI from this that would be great
+hhid_deid
+ppi
 
 #### foodsec_fies
 
@@ -630,36 +207,51 @@ hhid_deid
 # glimpse(empower_real)
 
 roster_merge <- roster%>%
-  select(hhid_deid, head_sex, spouse_sex, gender_hh_type, fokontany_deid)
+  select(hhid_deid, head_sex, spouse_sex, gender_hh_type:fokontany_deid)
 agriculture_merge <- agriculture%>%
-  select(hhid_deid, nrm_pract:nrm_pract_y)
+  select(hhid_deid, nrm_pract_a:nrm_pract_y)
 credit_merge <- credit%>%
   select(hhid_deid, loan_ngo, loan_informal, loan_formal, loan_friend, loan_group, loan_sav, starts_with("member_"))
 resources_merge <- resources_trees
-# %>%
-#   select(hhid_deid, mod_f_respondent_sex, trees_plant:trees_other_EN,
-#          land_kind_a, land_kind_c, clear_where_a, clear_where_c, clear_protect, collect:fish_why, protect_water:loss_affect,
-#          threats:threats_resource_use)
 energy_merge <- energy%>%
   select(hhid_deid, starts_with("fuel_sources"), starts_with("fuel_men"), starts_with("fuel_women"))
-poverty_merge <- poverty_ppi
+poverty_merge <- poverty_ppi%>%
+  select(hhid_deid, ppi)
 foodsec_merge <- foodsec_fies%>%
   select(hhid_deid, fies_enough:fies_unw_avg, CSI, birth, mddw)
-empower_merge <- empower_real%>%
-  select(hhid_deid)#:land_name, hit_out:alone, male_potentially_present)
 
-final <- reduce(list(roster_merge, agriculture_merge, credit_merge, resources_merge, energy_merge, poverty_merge, foodsec_merge, empower_merge), full_join, by = "hhid_deid")%>%
+final <- reduce(list(roster_merge, agriculture_merge, credit_merge, resources_merge, energy_merge, poverty_merge, foodsec_merge), full_join, by = "hhid_deid")%>%
   # how many natural resource management practices is this household using?
-  mutate(nrm_pract_sum = rowSums(select(resources_merge, nrm_pract_a:nrm_pract_y)), .after = nrm_pract_g)%>%
+  mutate(nrm_pract_sum = rowSums(select(agriculture_merge, nrm_pract_a:nrm_pract_y)), .after = nrm_pract_g)%>%
   # how many hours are men vs. women spending collecting fuel
   mutate(across(fuel_men_1:fuel_women_6), replace_na(0))%>%
   mutate(fuel_men_hours = rowSums(select(energy_merge, fuel_men_1:fuel_men_6), na.rm = TRUE), .after= fuel_women_6)%>%
-  mutate(fuel_women_hours = rowSums(select(energy_merge, fuel_women_1:fuel_women_6), na.rm = TRUE), .after = fuel_men_hours)%>%
-  # getting rid of all the intermediate or replaced variables.
-  select(-nrm_pract, -fuel_men_1:fuel_women_6)%>%
-  view()
+  mutate(fuel_women_hours = rowSums(select(energy_merge, fuel_women_1:fuel_women_6), na.rm = TRUE), .after = fuel_men_hours)
+
 ```
 ## Analysis
+
+#### Creating USAID ggplot theme
+
+```{r}
+theme_usaid <- function(){ 
+    font <- "Gill Sans MT"
+    theme_minimal() %+replace%
+    theme(
+      #grid elements
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),
+      axis.ticks = element_blank(),
+      #text elements
+      plot.title = element_text(family = font, size = 20, hjust = 0, vjust = 2),
+      plot.subtitle = element_text(family = font, size = 14),
+      plot.caption = element_text(family = font, size = 9, hjust = 1),
+      axis.title = element_text(family = font, size = 10),
+      axis.text = element_text(family = font, size = 9),
+      axis.text.x = element_text(margin=margin(5, b = 10))
+    )
+}
+```
 
 #### Initial poking around
 
@@ -1017,6 +609,7 @@ rsq <- 1 - sse/sst
 rsq
 
 ```
+
 #### Membership
 ```{r member of any group}
 # adding membership info into the most recent dataset
@@ -1090,7 +683,7 @@ final_member_compact %>%
     scale_fill_brewer(palette = "Paired", name = "", labels = c("No", "Yes"))+
     labs(y = "Percent")+
     scale_y_continuous(labels = scales::percent)+
-    theme_minimal()+
+    theme_usaid()+
     scale_x_discrete(labels = c("Non-Member", "Member"), name = "")
 
 final_member_compact%>%
@@ -1134,33 +727,6 @@ corrplot(MM, method = 'color', p.mat = testResM$p, tl.cex = 0.5, insig = 'label_
 view(final_member_compact)
 ```
 
-```{r are fokontanies with higher group membership similarly better off?}
-member_village <- final_member%>%
-  full_join(roster)%>%
-  select(member_sum, member_any, threats, protect_sum, nrm_pract_sum, trees_plant, fies_unw_avg, mddw, ppi, fokontany_deid)%>%
-  group_by(fokontany_deid)%>%
-  summarise(member_mean = mean(member_sum, na.rm = TRUE), member_any_percent = mean(member_any, na.rm = TRUE), threats_percent = mean(threats, na.rm = TRUE), protect_mean = mean(protect_sum, na.rm = TRUE), nrm_pract_mean = mean(nrm_pract_sum, na.rm = TRUE), trees_plant_percent = mean(trees_plant, na.rm = TRUE), fies_avg = mean(fies_unw_avg, na.rm = TRUE), mddw_percent = mean(mddw, na.rm = TRUE), ppi_avg = mean(ppi, na.rm = TRUE), total_number_respondents = n())%>%
-  filter(total_number_respondents > 15)%>%
-  view()
-# we end up with 24 fokontanies.
-
-MMV <- cor(member_village)
-
-testResMV <- cor.mtest(member_village, conf.level = 0.95)
-
-corrplot(MMV, method = 'color', p.mat = testResMV$p, tl.cex = 0.5, insig = 'label_sig', sig.level = c(0.001, 0.01, 0.05), pch.cex = 0.8, number.cex = 0.5, diag = FALSE, is.corr = FALSE, type = 'lower', col = COL2('BrBG'), cl.pos = 'r', cl.cex = 0.3, tl.col = "black")
-
-ggplot(member_village, mapping = aes(x = member_any_percent, y = trees_plant_percent))+
-  geom_point(aes(size = total_number_respondents))+
-  geom_smooth(method = 'lm')
-
-
-# correlation with tree planting strengthens!  but it might be sketchy bc 15 is a little low to call it statstically significant - check w Kelvin.
-
-# kinda funny that fokontany_deid has statistically significant correlations...nervous laugh.
-
-```
-
 ```{r group disaggregation}
 
 member_groups <- final_member%>%
@@ -1180,7 +746,6 @@ corrplot(MG[11:17, 1:10, drop=FALSE], method = 'color', p.mat = testResMG$p[11:1
 
 
 ```
-
 
 ```{r does the number of groups matter?}
 #define response variable
@@ -1309,167 +874,6 @@ corrplot(NRM[9:18, 1:8, drop=FALSE], method = 'color', p.mat = testResNRM$p[9:18
 
 ```
 
-#### Education
-```{r}
-
-#define response variable
-final_ed <- final_member%>%
-  full_join(roster, by = 'hhid_deid')%>%
-  drop_na(ed_level_head)%>%
-  select(nrm_pract_a:member_other2, trees_a:trees_y, trees_why_a:trees_why_k, trees_why_perm:land, land_kind_a:land_kind_b, clear, clear_why_a:clear_why_z, clear_where_a:clear_where_z, clear_protect:honey_why, mush:mush_why, insects:insects_why, fruits:fruits_why, meat:meat_why, plants:plants_why, fish:fish_why, wood:wood_why, char:char_why, protect_water:loss, threats, threats_illegal_logging:threats_resource_use, fuel_sources_1:fuel_sources_6, fuel_sources2_1:fuel_women_hours, ppi:mddw, ed_level_head)%>%
-  replace(is.na(.), 0)%>%
-  na.omit(.)
-y <- final_ed$ed_level_head
-
-#define matrix of predictor variables
-final_predict <- final_ed%>%
-  select(-ed_level_head)
-
-  
-x <- data.matrix(final_predict)
-
-#perform k-fold cross-validation to find optimal lambda value
-cv_model <- cv.glmnet(x, y, alpha = 1)
-
-#find optimal lambda value that minimizes test MSE
-best_lambda <- cv_model$lambda.min
-
-#produce plot of test MSE by lambda value
-plot(cv_model) 
-
-best_model <- glmnet(x, y, alpha = 1, lambda = best_lambda)
-
-coef(best_model)
-
-as.data.frame(as.matrix(coef(best_model)))%>%
-  arrange(desc(s0))
-
-#use fitted best model to make predictions
-y_predicted <- predict(best_model, s = best_lambda, newx = x)
-
-#find SST and SSE
-sst <- sum((y - mean(y))^2)
-sse <- sum((y_predicted - y)^2)
-
-#find R-Squared
-rsq <- 1 - sse/sst
-rsq
-
-# okay I could talk about this, but it isn't quite as interesting as membership.
-
-
-final_ed <- final_member%>%
-  full_join(roster, by = 'hhid_deid')%>%
-  drop_na(ed_level_head)%>%
-  mutate(across(threats_illegal_logging:threats_resource_use, ~replace_na(., 0)))%>%
-  view()
-
-final_ed_compact <- final_ed%>%
-  select(ed_level_head, member_sum, member_any, threats, threats_sum, protect_sum, nrm_pract_sum, trees_plant, clear_where_a, clear_where_b, clear_where_c, clear_protect, loss, fies_unw_avg, mddw, ppi)
-
-final_ed_compact %>%
-  drop_na(.)%>%
-  gather(threats, threats_sum, protect_sum, nrm_pract_sum, trees_plant, clear_where_a, clear_where_b, clear_where_c, clear_protect, loss, fies_unw_avg, mddw, member_any, key = "var", value = "value") %>% 
-  ggplot(aes(x = as_factor(ed_level_head), fill = as_factor(value))) +
-    geom_bar(position = 'fill') +
-    facet_wrap(~ var, scales = "free") +
-    theme_bw()
-
-final_ed_compact %>%
-  drop_na(ppi)%>%
-  ggplot(aes(x = as_factor(ed_level_head), fill = as_factor(ppi))) +
-    geom_bar(position = 'fill') +
-    theme_bw()
-
-final_ed_compact %>%
-  drop_na(ppi)%>%
-  drop_na(ed_level_head)%>%
-  ggplot(aes(x = as_factor(ed_level_head), y = ppi, fill = as_factor(ed_level_head))) +
-    geom_boxplot() +
-    guides(x = guide_axis(angle = 20), fill = "none")+
-    labs(y = "Probability that a household is in poverty (PPI)", title = "Poverty Probabilities by Education Level of the Head of Household", x = "Education level of the head of household")
-
-
-summary(lm(threats ~ ed_level_head, data = final_ed))
-# + sig
-# summary(lm(threats_sum ~ ed_level_head, data = final_ed))
-# # + sig
-# # fallen out of love with this one
-summary(lm(protect_sum ~ ed_level_head, data = final_ed))
-# + sig
-summary(lm(nrm_pract_sum ~ ed_level_head, data = final_ed))
-# + sig
-summary(lm(trees_plant ~ ed_level_head, data = final_ed))
-# + sig
-# summary(lm(clear_where_a ~ ed_level_head, data = final_ed))
-# # insig
-# summary(lm(clear_where_b ~ ed_level_head, data = final_ed))
-# # insig
-# summary(lm(clear_where_c ~ ed_level_head, data = final_ed))
-# # insig
-# summary(lm(clear_protect ~ ed_level_head, data = final_ed))
-# # insig
-summary(lm(loss ~ ed_level_head, data = final_ed))
-# + sig
-# not sure how this adds to the story
-summary(lm(fies_unw_avg ~ ed_level_head, data = final_ed))
-# - sig
-summary(lm(ppi ~ ed_level_head, data = final_ed))
-# + sig
-summary(lm(mddw ~ ed_level_head, data = final_ed))
-# + sig
-
-
-final_ed_predict <- final_ed_compact%>%
-  select(-member_sum, -threats_sum, -clear_where_a, -clear_where_b, -clear_where_c, -clear_protect, -loss)%>%
-  drop_na(ppi, mddw)%>%
-  view()
-
-ME <- cor(final_ed_predict)
-
-testResEd <- cor.mtest(final_ed_predict, conf.level = 0.95)
-
-view(ME)
-
-rownames(ME) <- c("Education level of household head", "Whether they're a member of a group", "Believes environment is threatened", "How important they believe ecosystem services are", "How many natural resource management strategies they use", "Whether they've planted any trees recently", "How food insecure they are (FIES)", "Whether the women have achieved minimum dietary diversity (MDD-W)", "Probability they're in poverty (PPI)")
-colnames(ME) <- c("Education level of household head", "Whether they're a member of a group", "Believes environment is threatened", "How important they believe ecosystem services are", "How many natural resource management strategies they use", "Whether they've planted any trees recently", "How food insecure they are (FIES)", "Whether the women have achieved minimum dietary diversity (MDD-W)", "Probability they're in poverty (PPI)")
-
-corrplot(ME, method = 'color', p.mat = testResEd$p, tl.cex = 0.5, insig = 'label_sig', sig.level = c(0.001, 0.01, 0.05), pch.cex = 0.8, number.cex = 0.5, diag = FALSE, is.corr = FALSE, type = 'lower', col = COL2('BrBG'), cl.pos = 'r', cl.cex = 0.3, tl.col = "black")
-
-```
-
-#### Trees
-
-okay last area
-
-```{r}
-final_trees <- final_member%>%
-  select(member_forest, threats_illegal_logging, wood, wood_access, fuel_sources_3, clear_where_a, land_kind_a, nrm_pract_c, trees_plant)%>%
-  replace(is.na(.), 0)%>%
-  rename(nrm_agroforestry = nrm_pract_c)
-
-MTree <- cor(final_trees)
-
-testResTree <- cor.mtest(final_trees, conf.level = 0.95)
-
-corrplot(MTree, method = 'color', p.mat = testResTree$p, tl.cex = 0.5, insig = 'label_sig', sig.level = c(0.001, 0.01, 0.05), pch.cex = 0.8, number.cex = 0.5, diag = FALSE, is.corr = FALSE)
-
-```
-
-## Miscellaneous Planning - it's old (pre-analysis), so don't worry about this part
-
-Maybe try to incorporate in a gender empowerment index, based on SWPER but modified to this dataset?  Replace unavailable data w similar or similarly relevant data?
-
-Would love to have biodiversity data - it would really add to this
-
-Definitely incorporate score on how much they care about protecting the environment
-
-Is it possible to make a sustainability index?  Should probably incorporate harmful activities (how much deforestation, weighted percentage of unclean fuel use, destructive agriculture practices) and helpful activities (reforestation, resource conservation, sustainably agriculture practices)
-
-Is there a good poverty indicator?  Maybe ask Kelvin's advice on this
-
-
-
 ```{r scratch work on final article}
 final_member%>%
   group_by(member_any)%>%
@@ -1486,7 +890,17 @@ final_member%>%
 final_member%>%
   filter(protect_sum > -5)%>%
   ggplot(aes(protect_sum, nrm_pract_sum, fill = as_factor(member_any), color = as_factor(member_any)))+
-  geom_point(position = 'jitter')+
+#  geom_point(position = 'jitter')+
   geom_smooth(method = 'lm')
+
+
+final_member%>%
+  group_by(member_any)%>%
+  summarise(mean(mddw, na.rm = TRUE), n())
+
+final_member%>%
+  group_by(member_religious)%>%
+  summarise(mean(mddw, na.rm = TRUE), n())
+
 ```
 
