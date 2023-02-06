@@ -7,12 +7,17 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
+#install.packages('extrafont')
+
 library(tidyverse)
 library(moderndive)
 library(modelr)
 library(haven)
 library(purrr)
 library(corrplot)
+library(extrafont)
+
 ```
 
 ## Importing the data
@@ -236,21 +241,34 @@ final <- reduce(list(roster_merge, agriculture_merge, credit_merge, resources_me
 ```{r}
 theme_usaid <- function(){ 
     font <- "Gill Sans MT"
-    theme_minimal() %+replace%
+    theme_classic() %+replace%
     theme(
       #grid elements
-      panel.grid.major = element_blank(),
-      panel.grid.minor = element_blank(),
-      axis.ticks = element_blank(),
+      panel.grid.major = element_line(),
+      plot.margin = margin(1, 1, 1, 1, "cm"),
+      aspect.ratio = .9,
       #text elements
-      plot.title = element_text(family = font, size = 20, hjust = 0, vjust = 2),
-      plot.subtitle = element_text(family = font, size = 14),
+      plot.title = element_text(family = font, size = 14, hjust = 0, vjust = 1),
       plot.caption = element_text(family = font, size = 9, hjust = 1),
       axis.title = element_text(family = font, size = 10),
-      axis.text = element_text(family = font, size = 9),
-      axis.text.x = element_text(margin=margin(5, b = 10))
+      axis.text = element_text(family = font, size = 8),
+      axis.text.x = element_text(margin=margin(5, b = 10)),
+      legend.text=element_text(family = font, size = 10)
     )
 }
+
+#This graph is also below.  Kept here for immediate feedback on theme changes.
+
+final_member_compact%>%
+  mutate(probability_not_in_poverty = (100-ppi)/100)%>%
+  mutate(how_food_secure = 1-fies_unw_avg)%>%
+  ggplot(aes(probability_not_in_poverty, how_food_secure, group = as_factor(member_any), color = as_factor(member_any)))+
+  geom_smooth(method = 'lm', se = FALSE)+
+#  geom_point()+
+  scale_color_manual(values = c("#BA0C2F", "#002F6C"), name = "", labels = c("Not a Member", "Member of a Group"), guide = guide_legend(reverse = TRUE))+
+  labs(title = "Correlation between Poverty Probability and Food Insecurity\nby Group Membership", x = "Probability Household Is Not in Poverty", y = "Level of Food Security (Reverse FIES Score)")+
+  scale_x_continuous(labels = scales::percent)+
+  theme_usaid()
 ```
 
 #### Initial poking around
@@ -620,14 +638,16 @@ final_member <- final%>%
 final_member<- final_member%>%
   mutate(threats_sum = rowSums(select(final_member, threats_illegal_logging:threats_resource_use), na.rm = TRUE), .after = threats_other_EN)%>%
   mutate(member_sum = rowSums(select(final_member, member_ag:member_other2)), .after = member_other2)%>%
-  mutate(member_any = ifelse((member_sum>0), 1, 0))
+  mutate(member_any = ifelse((member_sum>0), 1, 0))%>%
+  mutate(probability_not_in_poverty = (100-ppi)/100, .after = ppi)%>%
+  mutate(how_food_secure = 1-fies_unw_avg, .after = fies_unw_avg)
 
 #define response variable
 y <- final_member$member_any
 
 #define matrix of predictor variables
 final_predict <- final_member%>%
-  select(gender_hh_type:member_other2, trees_a:trees_y, trees_why_a:trees_why_k, trees_why_perm:land, land_kind_a:land_kind_b, clear, clear_why_a:clear_why_z, clear_where_a:clear_where_z, clear_protect:honey_why, mush:mush_why, insects:insects_why, fruits:fruits_why, meat:meat_why, plants:plants_why, fish:fish_why, wood:wood_why, char:char_why, protect_water:loss, threats, threats_illegal_logging:threats_resource_use, fuel_sources_1:fuel_sources_6, fuel_sources2_1:fuel_women_hours, ppi:mddw, -starts_with("member"))%>%
+  select(gender_hh_type:member_other2, trees_a:trees_y, trees_why_a:trees_why_k, trees_why_perm:land, land_kind_a:land_kind_b, clear, clear_why_a:clear_why_z, clear_where_a:clear_where_z, clear_protect:honey_why, mush:mush_why, insects:insects_why, fruits:fruits_why, meat:meat_why, plants:plants_why, fish:fish_why, wood:wood_why, char:char_why, protect_water:loss, threats, threats_illegal_logging:threats_resource_use, fuel_sources_1:fuel_sources_6, fuel_sources2_1:fuel_women_hours, ppi:mddw, -starts_with("member"), -probability_not_in_poverty, -how_food_secure)%>%
   replace(is.na(.), 0)%>%
   na.omit(.)
 x <- data.matrix(final_predict)
@@ -661,7 +681,7 @@ rsq
 
 
 final_member_compact <- final_member%>%
-  select(member_sum, member_any, threats, threats_sum, protect_sum, nrm_pract_sum, trees_plant, loss, fies_unw_avg, mddw, ppi)%>%
+  select(member_sum, member_any, threats, threats_sum, protect_sum, nrm_pract_sum, trees_plant, loss, fies_unw_avg, how_food_secure, mddw, ppi, probability_not_in_poverty)%>%
   view()
 
 final_member_compact %>%
@@ -710,21 +730,24 @@ summary(lm(ppi ~ member_any, data = final_member))
 summary(lm(mddw ~ member_any, data = final_member))
 
 final_member_predict <- final_member_compact%>%
-  select(-member_sum, -threats_sum, -loss)%>%
-  drop_na(ppi, mddw)
+  select(member_any, trees_plant, probability_not_in_poverty, how_food_secure, nrm_pract_sum, mddw, protect_sum, threats)%>%
+  drop_na(mddw, probability_not_in_poverty, how_food_secure, nrm_pract_sum)%>%
+  view()
 
 MM <- cor(final_member_predict)
 
-testResM <- cor.mtest(final_member_predict, conf.level = 0.95)
-
 view(MM)
 
-rownames(MM) <- c("Whether they're a member of a group", "Believes environment is threatened", "How important they believe ecosystem services are", "How many natural resource management strategies they use", "Whether they've planted any trees recently", "How food insecure they are (FIES)", "Whether the women have achieved minimum dietary diversity (MDD-W)", "Probability they're in poverty (PPI)")
-colnames(MM) <- c("Whether they're a member of a group", "Believes environment is threatened", "How important they believe ecosystem services are", "How many natural resource management strategies they use", "Whether they've planted any trees recently", "How food insecure they are (FIES)", "Whether the women have achieved minimum dietary diversity (MDD-W)", "Probability they're in poverty (PPI)")
+testResM <- cor.mtest(final_member_predict, conf.level = 0.95)
 
-corrplot(MM, method = 'color', p.mat = testResM$p, tl.cex = 0.5, insig = 'label_sig', sig.level = c(0.001, 0.01, 0.05), pch.cex = 0.8, number.cex = 0.5, diag = FALSE, is.corr = FALSE, type = 'lower', col = COL2('BrBG'), cl.pos = 'r', cl.cex = 0.3, tl.col = "black")
+rownames(MM) <- c(" ", "Believe environment is under threat", "Perceived importance of ecosystem services", "Number of natural resource management practices used", "Whether they planted trees in last year", "How food secure they are (Reverse FIES)", "Whether minimum dietary diversity achieved (MDD-W)", "Probability they're not in poverty (Reverse PPI)")
+colnames(MM) <- c(" ", "Believe environment is under threat", "Perceived importance of ecosystem services", "Number of natural resource management practices used", "Whether they planted trees in last year", "How food secure they are (Reverse FIES)", "Whether minimum dietary diversity achieved (MDD-W)", "Probability they're not in poverty (Reverse PPI)")
 
-view(final_member_compact)
+usaid_blue <- c("#86bbff", "#5ea4ff", "#0e77ff", "#002F6C", "#00214c")
+
+corrplot(MM[2:8, 1, drop=FALSE], method = 'color', p.mat = testResM$p[2:8, 1, drop = FALSE], tl.cex = 1, insig = 'label_sig', sig.level = c(0.001, 0.01, 0.05), pch.cex = 1, pch.col = "white", number.cex = 0.8, is.corr = FALSE, cl.pos = 'r', cl.cex = 0.6, cl.ratio = 0.7, tl.col = "black", col = colorRampPalette(usaid_blue)(10), col.lim = c(.11, .22), tl.srt = 0, tl.offset = 1, mar=c(1,1,1,1), family = "Gill Sans MT")
+title(main = "Correlations with Household Group Membership", family = "Gill Sans MT", sub = "Significance levels: *** 0.001, ** 0.01, * 0.05")
+
 ```
 
 ```{r group disaggregation}
@@ -791,14 +814,13 @@ rsq
 ```{r fies-ppi}
 
 final_member_compact%>%
-  mutate(probability_not_in_poverty = (100-ppi)/100)%>%
-  rename(how_food_insecure = fies_unw_avg)%>%
-  ggplot(aes(probability_not_in_poverty, how_food_insecure, group = as_factor(member_any), color = as_factor(member_any)))+
-  geom_smooth(method = 'lm')+
+  ggplot(aes(probability_not_in_poverty, how_food_secure, group = as_factor(member_any), color = as_factor(member_any)))+
+  geom_smooth(method = 'lm', se = FALSE)+
 #  geom_point()+
-  scale_color_manual(values = c("#0C7C59", "#22AED1"), name = "Group Member?", labels = c("No", "Yes"))+
-  labs(title = "Correlation between Poverty Probability and Food Insecurity by Group Membership", x = "Probability Household Is Not in Poverty", y = "Food Insecurity Experience Score")+
-  scale_x_continuous(labels = scales::percent)
+  scale_color_manual(values = c("#BA0C2F", "#002F6C"), name = "", labels = c("Not a Member", "Member of a Group"), guide = guide_legend(reverse = TRUE))+
+  labs(title = "Correlation between Poverty Probability and Food Insecurity by Group Membership", x = "Probability Household Is Not in Poverty", y = "Level of Food Security (Reverse FIES Score)")+
+  scale_x_continuous(labels = scales::percent)+
+  theme_usaid()
 
 final_member_compact%>%
   mutate(probability_not_in_poverty = (100-ppi)/100)%>%
@@ -807,10 +829,11 @@ final_member_compact%>%
   ggplot(aes(as_factor(member_any), probability_not_in_poverty, color = as_factor(mddw), fill = as_factor(mddw)))+
   geom_dotplot(binaxis = "y", stackdir = "center")+
 #  geom_point()+
-  scale_fill_manual(values = c("#0C7C59", "#22AED1"), name = "MDDW Achieved?", labels = c("No", "Yes"))+
-  scale_color_manual(values = c("#0C7C59", "#22AED1"), name = "MDDW Achieved?", labels = c("No", "Yes"))+
+  scale_fill_manual(values = c("#BA0C2F", "#002F6C"), name = "MDDW Achieved?", labels = c("No", "Yes"))+
+  scale_color_manual(values = c("#BA0C2F", "#002F6C"), name = "MDDW Achieved?", labels = c("No", "Yes"))+
 #  labs(title = "", x = "", y = "")+
-  scale_y_continuous(labels = scales::percent)
+  scale_y_continuous(labels = scales::percent)+
+  theme_usaid()
 
 final_member_compact%>%
   add_column(reproductive_females = tsiro_fm_data$reproductive_females)%>%
@@ -883,15 +906,20 @@ final_member%>%
   group_by(member_any)%>%
   summarise(mean(threats, na.rm = TRUE), n())
 
+summary(lm(threats ~ member_any, final_member))
+
 final_member%>%
   group_by(member_any)%>%
   summarise(mean(nrm_pract_sum, na.rm = TRUE), n())
 
 final_member%>%
   filter(protect_sum > -5)%>%
-  ggplot(aes(protect_sum, nrm_pract_sum, fill = as_factor(member_any), color = as_factor(member_any)))+
+  ggplot(aes(protect_sum, nrm_pract_sum, color = as_factor(member_any)))+
 #  geom_point(position = 'jitter')+
-  geom_smooth(method = 'lm')
+  geom_smooth(method = 'lm', se = FALSE)+
+  theme_usaid()+
+  scale_color_manual(values = c("#BA0C2F", "#002F6C"), name = "", labels = c("Not a Member", "Member of a Group"), guide = guide_legend(reverse = TRUE))+
+  labs(title = "Correlation between Environmental Importance Perception and\nNatural Resource Management Practice Use by Group Membership", x = "Perceived Importance of Ecosystem Services Score", y = "Number of Natural Resource Management Practices Used")
 
 
 final_member%>%
@@ -901,6 +929,13 @@ final_member%>%
 final_member%>%
   group_by(member_religious)%>%
   summarise(mean(mddw, na.rm = TRUE), n())
+
+final_member%>%
+  group_by(member_any)%>%
+  summarise(mean(trees_plant, na.rm = TRUE), n())
+
+
+
 
 ```
 
