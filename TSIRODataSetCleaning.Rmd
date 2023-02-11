@@ -266,9 +266,11 @@ final_member_compact%>%
   geom_smooth(method = 'lm', se = FALSE)+
 #  geom_point()+
   scale_color_manual(values = c("#BA0C2F", "#002F6C"), name = "", labels = c("Not a Member", "Member of a Group"), guide = guide_legend(reverse = TRUE))+
-  labs(title = "Correlation between Poverty Probability and Food Insecurity\nby Group Membership", x = "Probability Household Is Not in Poverty", y = "Level of Food Security (Reverse FIES Score)")+
+  labs(title = "Poverty Probability and Food Insecurity by Group Membership", x = "Probability Household Is Not in Poverty", y = "Level of Food Security (Reverse FIES Score)")+
   scale_x_continuous(labels = scales::percent)+
   theme_usaid()
+
+ggsave("fies_ppi.png")
 ```
 
 #### Initial poking around
@@ -919,7 +921,9 @@ final_member%>%
   geom_smooth(method = 'lm', se = FALSE)+
   theme_usaid()+
   scale_color_manual(values = c("#BA0C2F", "#002F6C"), name = "", labels = c("Not a Member", "Member of a Group"), guide = guide_legend(reverse = TRUE))+
-  labs(title = "Correlation between Environmental Importance Perception and\nNatural Resource Management Practice Use by Group Membership", x = "Perceived Importance of Ecosystem Services Score", y = "Number of Natural Resource Management Practices Used")
+  labs(title = "Relationship between Environmental Importance Perception and\nNatural Resource Management Practice Use by Group Membership", x = "Perceived Importance of Ecosystem Services Score", y = "Number of Natural Resource Management Practices Used")
+
+ggsave("nrm_environment.png")
 
 
 final_member%>%
