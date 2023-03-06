@@ -17,6 +17,7 @@ library(haven)
 library(purrr)
 library(corrplot)
 library(extrafont)
+library(glmnet)
 
 ```
 
@@ -62,7 +63,9 @@ empower <- select(tsiro_fm_data, hhid_deid, head_sex,spouse_sex, mod_h_responden
 ```
 
 
-#### Views on the environment score
+#### Transforming the resources section
+
+One of the priority indicators is a sum of respondent's scores on how important they believe each resource is, so I created this as a variable.  I also renamed the threats to more memorable variable names.  I was curious whether households were planting trees with the intention of cutting them down or with the intention of leaving them standing for their ecosystem services.  Both would be better than not planting trees, but the latter could have a bigger impact on ecosystem health.  I created variables designating this. 
 
 ```{r}
 # glimpse(resources)
@@ -104,35 +107,19 @@ resources_trees <- resources_views%>%
 
 ```
 
-I want to look more at unsustainable resource use.  The toolkit says each activity should pick unsustainable practices to look at, so here's a list of what TSIRO collected that I think I could use:
-collection of forest products
-plans to clear land next year
-cleared land last year
+#### Calculating FIES and PPI
 
-do you engage in this activity?
-why?
-how important is it to you?
-how often do you do it?
-has this changed over the past year (if so, why)?
-perception of ecosystem status in the future? (could take this from threats data)
-who makes decisions on engaging in the activity and who engages most in the activity can be disaggregated by gender
+FIES is the Food Insecurity Experience Scale.  It measures various indicators of food insecurity.  Each household's final score is calculated by summing how many of these boxes they check off.  For more information, reference the Voices of the Hungry project.
 
-Primary indicator here is whether the households engage in the activity, other stuff is just for added context
-
-#### Calculating FIES Percentage
+PPI is the Poverty Probability Index.  This index was developed by INRM for this data set.  It shows the probability each household is in poverty, based on a model developed with regression on recent Malagasy data.
 
 ```{r}
 # view(foodsec)
-#code modified from FAO Voices of the Hungry project report, attached.
 
 foodsec_fies <- foodsec%>%
   mutate(fies_unw_avg = rowMeans(select(foodsec, starts_with("fies_")), na.rm = TRUE), .after = fies_day)
-```
 
-#### Calculating PPI
-
-```{r}
-view(poverty)
+# view(poverty)
 
 poverty_ppi <- poverty%>%
   mutate(soap_water = as.numeric(water == 1 & (detergent == 1 | detergent == 2)),
@@ -141,8 +128,7 @@ poverty_ppi <- poverty%>%
 					+ (-5)*clothes_1 + (-4)*linen_2 + (4)*food_5 + (-4)*clothes_2
 					+ (4)*birth + (-4)*food_4 + (-3)*clothes_3
 					+ (-3)*soap_water + (-3)*shoes + (2)*children_5_18 + (-2)*linen_1
-					+ (-1)*soap_4k + (-1)*roofmat)%>%
-  view()
+					+ (-1)*soap_4k + (-1)*roofmat)
 
 summarise(poverty_ppi, across(everything(), ~ sum(is.na(.x))))
 
@@ -150,78 +136,27 @@ summarise(poverty_ppi, across(everything(), ~ sum(is.na(.x))))
 
 ## Creating narrow dataset
 
-Okay first planning - what do I want in here, section by section?
-
-#### roster
-
-hhid_deid
-spouse_sex
-gender_hh_type
-
-#### agriculture
-
-hhid_deid
-nrm_pract:nrm_pract_g
-
-#### credit
-
-#### resources_views
-
-hhid_deid
-mod_f_respondent_sex
-trees_plant:trees_other_EN
-land_kind_a           did you clear forest for cultivation
-clear_where_a         plan to clear land for cultivation
-clear_protect         plan to clear protected area
-honey, mush, insects, fruits, meat, plants, woods, char, fish     how important are each of these to your livelihood
-protect_water:loss_affect   importance of protecting each, have you lost resources, how were you affected?
-threats:threat_big_i
-
-#### energy
-
-hhid_deid
-starts_with(fuel_sources), starts_with(fuel_men), starts_with(fuel_women) what fuel sources do you use and who spends how much time gathering them
-
-I'm going to want to sum fuel_men variables and fuel_women variables, but might do that after join.
-
-#### poverty
-
-hhid_deid
-ppi
-
-#### foodsec_fies
-
-hhid_deid
-fies_enough:fies_unw_avg        fies info
-CSI         coping strategies index score
-birth       has anyone given birth in this household
-mddw        minimum dietary diversity - women
-
-#### empower
-
-hhid_deid 
+Once I explored each section, I chose a few variables from each to focus on for further analysis.  I merged these together here.
 
 ```{r}
-# glimpse(roster)
-# glimpse(agriculture)
-# glimpse(credit)
-# glimpse(resources_views)
-# glimpse(energy)
-# glimpse(poverty)
-# glimpse(foodsec)
-# glimpse(empower_real)
 
 roster_merge <- roster%>%
   select(hhid_deid, head_sex, spouse_sex, gender_hh_type:fokontany_deid)
+
 agriculture_merge <- agriculture%>%
   select(hhid_deid, nrm_pract_a:nrm_pract_y)
+
 credit_merge <- credit%>%
   select(hhid_deid, loan_ngo, loan_informal, loan_formal, loan_friend, loan_group, loan_sav, starts_with("member_"))
+
 resources_merge <- resources_trees
+
 energy_merge <- energy%>%
   select(hhid_deid, starts_with("fuel_sources"), starts_with("fuel_men"), starts_with("fuel_women"))
+
 poverty_merge <- poverty_ppi%>%
   select(hhid_deid, ppi)
+
 foodsec_merge <- foodsec_fies%>%
   select(hhid_deid, fies_enough:fies_unw_avg, CSI, birth, mddw)
 
@@ -234,9 +169,12 @@ final <- reduce(list(roster_merge, agriculture_merge, credit_merge, resources_me
   mutate(fuel_women_hours = rowSums(select(energy_merge, fuel_women_1:fuel_women_6), na.rm = TRUE), .after = fuel_men_hours)
 
 ```
+
 ## Analysis
 
 #### Creating USAID ggplot theme
+
+Developed using USAID branding guidelines.
 
 ```{r}
 theme_usaid <- function(){ 
@@ -248,34 +186,23 @@ theme_usaid <- function(){
       plot.margin = margin(1, 1, 1, 1, "cm"),
       aspect.ratio = .9,
       #text elements
-      plot.title = element_text(family = font, size = 14, hjust = 0, vjust = 1),
-      plot.caption = element_text(family = font, size = 9, hjust = 1),
-      axis.title = element_text(family = font, size = 10),
-      axis.text = element_text(family = font, size = 8),
+      plot.title = element_text(family = font, size = 16, hjust = 0, vjust = 1),
+      axis.title = element_text(family = font, size = 12),
+      axis.text = element_text(family = font, size = 12),
       axis.text.x = element_text(margin=margin(5, b = 10)),
-      legend.text=element_text(family = font, size = 10)
+      legend.text=element_text(family = font, size = 12)
     )
 }
 
-#This graph is also below.  Kept here for immediate feedback on theme changes.
-
-final_member_compact%>%
-  mutate(probability_not_in_poverty = (100-ppi)/100)%>%
-  mutate(how_food_secure = 1-fies_unw_avg)%>%
-  ggplot(aes(probability_not_in_poverty, how_food_secure, group = as_factor(member_any), color = as_factor(member_any)))+
-  geom_smooth(method = 'lm', se = FALSE)+
-#  geom_point()+
-  scale_color_manual(values = c("#BA0C2F", "#002F6C"), name = "", labels = c("Not a Member", "Member of a Group"), guide = guide_legend(reverse = TRUE))+
-  labs(title = "Poverty Probability and Food Insecurity by Group Membership", x = "Probability Household Is Not in Poverty", y = "Level of Food Security (Reverse FIES Score)")+
-  scale_x_continuous(labels = scales::percent)+
-  theme_usaid()
-
-ggsave("fies_ppi.png")
 ```
 
-#### Initial poking around
+#### Initial exploration of correlations with environmental beliefs
+
+The gender perspective didn't make it into the final article, but the focus on environmental beliefs did.  Later in this code chunk, I began exploring correlations with environmental experience.
 
 ```{r}
+
+# I started with an exploration of the views on importance of different environmental resources.
 
 final%>%
   group_by(mod_f_respondent_sex)%>%
@@ -308,6 +235,8 @@ final%>%
        x = "Resource",
        y = "Percent")
 
+# next in environmental views - perceptions of threats to ecosystem.
+
 final%>%
   group_by(mod_f_respondent_sex)%>%
   summarise(across(threats_illegal_logging:threats_resource_use, ~ (mean(.x, na.rm = TRUE))))%>%
@@ -325,18 +254,16 @@ summarise(final, across(c(fuel_men_3, fuel_women_3), ~ (mean(.x, na.rm = TRUE)))
 # On average, men spend VASTLY more time collecting firewood than women.  Maybe
 # that's why they're more concerned about the impact of illegal logging.
 
+
+#That got me thinking - how does experience of ecosystem loss affect environmental beliefs?
+
 final%>%
   mutate(loss = as.factor(loss))%>%
   ggplot(aes(protect_avg))+
   geom_density(aes(color = loss), size = 1)+
   scale_color_brewer(palette = "Paired")
 
-final%>%
-  drop_na(nrm_pract_sum)%>%
-  mutate(nrm_pract_sum = as.factor(nrm_pract_sum))%>%
-  ggplot(aes(protect_avg))+
-  geom_density(aes(color = nrm_pract_sum))+
-  facet_grid(cols = vars(nrm_pract_sum))
+# what about the positive experience of using natural resource management practices?
 
 final%>%
   drop_na(nrm_pract_sum)%>%
@@ -344,118 +271,12 @@ final%>%
   ggplot(aes(protect_avg))+
   geom_density(aes(color = nrm_pract_sum))+
   facet_grid(cols = vars(nrm_pract_sum))
-  
 
 ```
 
+#### Trees?
 
-hm.  This is the first time I've gotten a good look at the roster and I'm
-looking through the gender hh type and noticing that it doesn't always align
-with the recorded head_sex/spouse_sex.  Is the spouse not living at home?  Either
-way, this adds another layer of difficulty to my assumption that I can figure out
-the gender of a respondent's partner based on this data.  I might just have to
-take out any data that required me to assume the gender of the respondent's partner -
-or the presence of a partner at all.
-
-
-Ok questions for 1/12 meeting:
-- going to need child_6_11 to accurately calculate PPI.  Would that need IRB approval?  If so, that's not going to get to me in time.
-- for any of the you or your partner stuff to be helpful, I think we need to know if they're the head of the household for two reasons:
-1. we don't know their marital status/spouse of their partner unless we have that
-  a. based on the numbers that less than 1% of HoH couples are same-sex I don't mind assuming all unknown spouses are straight, but for the credit section, I don't even know if they have a partner
-2. in the empowerment section we do know whether they have a partner, but we're missing a crucial aspect of their decision making power if we don't know whether they're in the HoH couple.  If I answered the door, I would say I'm not on the deed, but that doesn't mean women have less power in my household, it just means I'm not in the HoH couple
-
-#### looking for stuff that correlates with several unsustainable activities
-```{r}
-
-final_agriculture <- full_join(final, agriculture, by = "hhid_deid")
-
-final_agriculture <- final_agriculture%>%
-  mutate(across(c("clear_where_a", "clear_where_c", "land_kind_a", "land_kind_c"), ~replace_na(.,0)))%>%
-  mutate(clear_any = clear_where_a+clear_where_c+land_kind_a+land_kind_c)%>%
-  mutate(clear_any = ifelse(clear_any > 0, 1, 0))%>%
-  view()
-
-final_agriculture%>%
-  group_by(clear_any)%>%
-  ggplot(aes(as_factor(crops_1), fill = as_factor(clear_any)))+
-  geom_bar()+
-  guides(x = guide_axis(angle = 45))
-
-final_agriculture%>%
-  filter(crops_1 == 1 |
-           crops_1 == 2 |
-           crops_1 == 6 |
-           crops_1 == 7 |
-           crops_1 == 13 |
-           crops_1 == 14)%>%
-  group_by(clear_any)%>%
-  ggplot(aes(as_factor(crops_1), fill = as_factor(clear_any)))+
-  geom_bar(position = "fill")+
-  guides(x = guide_axis(angle = 45))
-
-final_agriculture%>%
-    filter(crops_1 == 1 |
-           crops_1 == 2 |
-           crops_1 == 6 |
-           crops_1 == 7 |
-           crops_1 == 13 |
-           crops_1 == 14)%>%
-  group_by(collect)%>%
-  ggplot(aes(as_factor(crops_1), fill = as_factor(collect)))+
-  geom_bar(position = "fill")+
-  guides(x = guide_axis(angle = 45))
-
-final_agriculture%>%
-    filter(crops_1 == 1 |
-           crops_1 == 2 |
-           crops_1 == 6 |
-           crops_1 == 7 |
-           crops_1 == 13 |
-           crops_1 == 14)%>%
-  drop_na(loss)%>%
-  group_by(loss)%>%
-  ggplot(aes(as_factor(crops_1), fill = as_factor(loss)))+
-  geom_bar(position = "fill")+
-  guides(x = guide_axis(angle = 45))
-
-final_agriculture%>%
-    filter(crops_1 == 1 |
-           crops_1 == 2 |
-           crops_1 == 6 |
-           crops_1 == 7 |
-           crops_1 == 13 |
-           crops_1 == 14)%>%
-  drop_na(threats_big)%>%
-  group_by(threats_big)%>%
-  ggplot(aes(as_factor(crops_1), fill = as_factor(threats_big)))+
-  geom_bar(position = "fill")+
-  guides(x = guide_axis(angle = 45))
-
-final_agriculture%>%
-    filter(crops_1 == 1 |
-           crops_1 == 2 |
-           crops_1 == 6 |
-           crops_1 == 7 |
-           crops_1 == 13 |
-           crops_1 == 14)%>%
-  drop_na(ppi)%>%
-  group_by(ppi)%>%
-  ggplot(aes(as_factor(crops_1), fill = as_factor(ppi)))+
-  geom_bar(position = "fill")+
-  guides(x = guide_axis(angle = 45))
-
-#obviously not the best chart type for this, but wildly, you can see which crop-
-#growers tend to be more and less wealthy.  Cassava growers aren't doing so hot.
-
-
-# I feel like I'm trying to get a sense of a forest by staring at the bark of a
-# single tree.
-
-```
-#### trees
-
-I'm really loving the irony that I used a platitude about not seeing the forest at the beginning of this pivot, and then that's ACTUALLY what I was missing
+I considered theming my article around trees.  While I didn't go in that direction, it did help me sort out the forestry-related variables.
 
 ```{r}
 
@@ -468,7 +289,8 @@ final%>%
   group_by(wood_access)%>%
   summarise(mean(threats_illegal_logging, na.rm = TRUE))
 
-#ANOVA significance tests
+# significance tests
+
 summary(lm(wood_access ~ threats_illegal_logging, data = final))
 # correlation between whether they've had trouble getting wood and whether they think the environment is threatened by illegal logging 
 summary(lm(wood ~ threats_illegal_logging, data = final))
@@ -485,8 +307,15 @@ summary(lm(clear_where_a ~ threats_illegal_logging, data = final))
 # absolutely no correlation between threat of illegal logging and plan to clear land
 
 ```
+
 #### Corrplots
+
+Coming up empty, I made a ton of corrplots to try to find some significant correlations.
+
 ```{r}
+
+# group membership vs. natural resource management practices - ended up informing the article
+
 correlations_final <- final%>%
   mutate(member_sum = rowSums(select(final, member_ag:member_other2), na.rm = TRUE), .after = member_other2)%>%
   select(nrm_pract_a:nrm_pract_g, member_ag:member_women)%>%
@@ -507,6 +336,8 @@ testRes <- cor.mtest(correlations_final, conf.level = 0.95)
 corrplot(M, method = 'number', p.mat = testRes$p, tl.cex = 0.5, insig = 'blank', pch.cex = 0.8, pch.col = 'grey20', number.cex = 0.5, diag = FALSE, type = 'lower', is.corr = FALSE)
 # members of agriculture groups were more likely to engage in natural resource managment practices than those who aren't.
 
+
+# natural resource management practices vs. views.  I didn't find the strong correlation between specific resource types that I was hoping for, but there was a broader beliefs-action correlation explored more later.
 
 correlations_final2 <- final%>%
   select(nrm_pract_a:nrm_pract_g, protect_water:protect_med)%>%
@@ -533,105 +364,39 @@ corrplot(M2, method = 'number', p.mat = testRes2$p, tl.cex = 0.5, insig = 'blank
 
 ```
 
-```{r}
-final_gap <- final%>%
-  group_by(fokontany_deid)%>%
-  summarise(mean_gap = mean(protect_sum, na.rm = TRUE) - mean(nrm_pract_sum, na.rm = TRUE), mean_ppi = mean(ppi, na.rm = TRUE))
+#### Lasso regressions - starting with threats
 
-summary(lm(mean_gap ~ mean_ppi, data = final_gap))
+A lasso regression takes one response variable and a whole load of potential indicator variables and finds which of them can actually be combined to predict the response.  I sometimes used this in reverse to find what outcomes could be predicted by one indicator.
 
-final_gap_hh <- final%>%
-  mutate(gap = protect_sum - nrm_pract_sum - trees_plant)%>%
-  drop_na(gap)
+```{r threats}
 
-#define response variable
-y <- final_gap_hh$gap
-
-#define matrix of predictor variables
-final_predict <- final_gap_hh%>%
-  select(gender_hh_type:member_other2, trees_a:trees_y, trees_why_a:trees_why_k, trees_why_perm:land, land_kind_a:land_kind_b, clear, clear_why_a:clear_why_z, clear_where_a:clear_where_z, clear_protect:honey_why, mush:mush_why, insects:insects_why, fruits:fruits_why, meat:meat_why, plants:plants_why, fish:fish_why, wood:wood_why, char:char_why, protect_water:loss, threats, threats_illegal_logging:threats_resource_use, fuel_sources_1:fuel_sources_6, fuel_sources2_1:fuel_women_hours, ppi:mddw, -starts_with("nrm"), -starts_with("protect"))%>%
-  replace(is.na(.), 0)%>%
-  na.omit(.)
-x <- data.matrix(final_predict)
-
-library(glmnet)
-
-#perform k-fold cross-validation to find optimal lambda value
-cv_model <- cv.glmnet(x, y, alpha = 1)
-
-#find optimal lambda value that minimizes test MSE
-best_lambda <- cv_model$lambda.min
-best_lambda
-
-#produce plot of test MSE by lambda value
-plot(cv_model) 
-
-
-best_model <- glmnet(x, y, alpha = 1, lambda = best_lambda)
-
-coef(best_model)
-
-as.data.frame(as.matrix(coef(best_model)))%>%
-  arrange(desc(s0))
-
-#use fitted best model to make predictions
-y_predicted <- predict(best_model, s = best_lambda, newx = x)
-
-#find SST and SSE
-sst <- sum((y - mean(y))^2)
-sse <- sum((y_predicted - y)^2)
-
-#find R-Squared
-rsq <- 1 - sse/sst
-rsq
-
-
-
-
-
-#define response variable
 y <- final_gap_hh$threats
 
-#define matrix of predictor variables
 final_predict <- final_gap_hh%>%
   select(gender_hh_type:member_other2, trees_a:trees_y, trees_why_a:trees_why_k, trees_why_perm:land, land_kind_a:land_kind_b, clear, clear_why_a:clear_why_z, clear_where_a:clear_where_z, clear_protect:honey_why, mush:mush_why, insects:insects_why, fruits:fruits_why, meat:meat_why, plants:plants_why, fish:fish_why, wood:wood_why, char:char_why, protect_water:loss, threats, threats_illegal_logging:threats_resource_use, fuel_sources_1:fuel_sources_6, fuel_sources2_1:fuel_women_hours, ppi:mddw, -starts_with("threat"))%>%
   replace(is.na(.), 0)%>%
   na.omit(.)
 x <- data.matrix(final_predict)
 
-library(glmnet)
-
-#perform k-fold cross-validation to find optimal lambda value
 cv_model <- cv.glmnet(x, y, alpha = 1)
-
-#find optimal lambda value that minimizes test MSE
 best_lambda <- cv_model$lambda.min
-
-#produce plot of test MSE by lambda value
 plot(cv_model) 
-
 best_model <- glmnet(x, y, alpha = 1, lambda = best_lambda)
-
 coef(best_model)
 
 as.data.frame(as.matrix(coef(best_model)))%>%
   arrange(desc(s0))
 
-#use fitted best model to make predictions
-y_predicted <- predict(best_model, s = best_lambda, newx = x)
-
-#find SST and SSE
-sst <- sum((y - mean(y))^2)
-sse <- sum((y_predicted - y)^2)
-
-#find R-Squared
-rsq <- 1 - sse/sst
-rsq
-
 ```
 
-#### Membership
-```{r member of any group}
+## Membership Analysis
+
+I looked into group membership with a lasso regression and found several leads worth pursuing, detailed below.
+
+#### Effects of membership in any group
+
+```{r initial lasso regression}
+
 # adding membership info into the most recent dataset
 
 final_member <- final%>%
@@ -644,43 +409,26 @@ final_member<- final_member%>%
   mutate(probability_not_in_poverty = (100-ppi)/100, .after = ppi)%>%
   mutate(how_food_secure = 1-fies_unw_avg, .after = fies_unw_avg)
 
-#define response variable
 y <- final_member$member_any
 
-#define matrix of predictor variables
 final_predict <- final_member%>%
   select(gender_hh_type:member_other2, trees_a:trees_y, trees_why_a:trees_why_k, trees_why_perm:land, land_kind_a:land_kind_b, clear, clear_why_a:clear_why_z, clear_where_a:clear_where_z, clear_protect:honey_why, mush:mush_why, insects:insects_why, fruits:fruits_why, meat:meat_why, plants:plants_why, fish:fish_why, wood:wood_why, char:char_why, protect_water:loss, threats, threats_illegal_logging:threats_resource_use, fuel_sources_1:fuel_sources_6, fuel_sources2_1:fuel_women_hours, ppi:mddw, -starts_with("member"), -probability_not_in_poverty, -how_food_secure)%>%
   replace(is.na(.), 0)%>%
   na.omit(.)
 x <- data.matrix(final_predict)
 
-#perform k-fold cross-validation to find optimal lambda value
 cv_model <- cv.glmnet(x, y, alpha = 1)
-
-#find optimal lambda value that minimizes test MSE
 best_lambda <- cv_model$lambda.min
-
-#produce plot of test MSE by lambda value
 plot(cv_model) 
-
 best_model <- glmnet(x, y, alpha = 1, lambda = best_lambda)
-
 coef(best_model)
 
 as.data.frame(as.matrix(coef(best_model)))%>%
   arrange(desc(s0))
 
-#use fitted best model to make predictions
-y_predicted <- predict(best_model, s = best_lambda, newx = x)
+```
 
-#find SST and SSE
-sst <- sum((y - mean(y))^2)
-sse <- sum((y_predicted - y)^2)
-
-#find R-Squared
-rsq <- 1 - sse/sst
-rsq
-
+```{r starting to dive in with some plots}
 
 final_member_compact <- final_member%>%
   select(member_sum, member_any, threats, threats_sum, protect_sum, nrm_pract_sum, trees_plant, loss, fies_unw_avg, how_food_secure, mddw, ppi, probability_not_in_poverty)%>%
@@ -708,13 +456,61 @@ final_member_compact %>%
     theme_usaid()+
     scale_x_discrete(labels = c("Non-Member", "Member"), name = "")
 
+final_member_compact %>%
+  drop_na(.)%>%
+  ggplot(aes(x = as_factor(member_any), fill = as_factor(trees_plant)))+
+  geom_bar(position = 'fill')+
+  theme_usaid()+
+scale_y_continuous(labels = scales::percent)+
+  labs(y = "Percent")+
+  scale_x_discrete(labels = c("Non-Member", "Member"), name = "")+
+  scale_fill_manual(values = c("#BA0C2F", "#002F6C"), name = "",
+labels = c("Did not plant any trees in the last three years", "Planted trees in the last three years"))
+
+final_member_compact %>%
+  group_by(member_any)%>%
+  summarize(trees_percent = mean(trees_plant, drop_na()))%>%
+  ggplot(aes(x = as_factor(member_any), y = trees_percent))+
+  geom_col(fill = "#002F6C")+
+  theme_usaid()+
+  coord_fixed(ratio = 4)+
+  scale_y_continuous(labels = scales::percent)+
+  labs(y = "")+
+  scale_x_discrete(labels = c("Non-Member", "Member"), name = "")+
+  labs(title = "Households That Planted Trees in the \nLast Three Years")
+
+ggsave("trees_plant_graph.png", width = 5)
+
 final_member_compact%>%
   drop_na(ppi)%>%
   ggplot(aes(x = as_factor(member_any))) +
     geom_violin(aes(y = ppi))+
     geom_violin(aes(y = fies_unw_avg))+
     theme_bw()
-  
+
+final_member%>%
+  group_by(member_any)%>%
+  filter(trees_plant == 1)%>%
+  drop_na(trees_why_perm)%>%
+  summarise(mean(trees_why_perm, drop.na = TRUE))
+
+final_member%>%
+  group_by(member_any)%>%
+  filter(trees_plant == 1)%>%
+  drop_na(trees_why_perm)%>%
+  summarise(sum(trees_why_perm))
+
+final_member%>%
+  group_by(member_any)%>%
+  filter(trees_plant == 1)%>%
+  drop_na(trees_why_cut)%>%
+  summarise(mean(trees_why_cut, drop.na = TRUE))
+
+view(final_member)
+
+```
+
+```{r linear modeling to confirm significance}
 
 summary(lm(threats ~ member_any, data = final_member))
 summary(lm(threats_sum ~ member_any, data = final_member))
@@ -730,6 +526,10 @@ summary(lm(loss ~ member_any, data = final_member))
 summary(lm(fies_unw_avg ~ member_any, data = final_member))
 summary(lm(ppi ~ member_any, data = final_member))
 summary(lm(mddw ~ member_any, data = final_member))
+
+```
+
+```{r corrplot}
 
 final_member_predict <- final_member_compact%>%
   select(member_any, trees_plant, probability_not_in_poverty, how_food_secure, nrm_pract_sum, mddw, protect_sum, threats)%>%
@@ -752,6 +552,8 @@ title(main = "Correlations with Household Group Membership", family = "Gill Sans
 
 ```
 
+#### Are there specific groups that have more of an impact?
+
 ```{r group disaggregation}
 
 member_groups <- final_member%>%
@@ -760,8 +562,6 @@ member_groups <- final_member%>%
   mutate(across(starts_with("member_"), ~replace_na(., 0)))%>%
   drop_na()%>%
   view()
-           
-# we end up with 24 fokontanies.
 
 MG <- cor(member_groups)
 
@@ -769,51 +569,57 @@ testResMG <- cor.mtest(member_groups, conf.level = 0.95)
 
 corrplot(MG[11:17, 1:10, drop=FALSE], method = 'color', p.mat = testResMG$p[11:17,1:10], tl.cex = 0.5, insig = 'label_sig', sig.level = c(0.001, 0.01, 0.05), pch.cex = 0.8, number.cex = 0.5, is.corr = FALSE, col = COL2('BrBG'), cl.pos = 'r', cl.cex = 0.3, tl.col = "black")
 
-
 ```
 
+#### MDDW and Religion
+
+In the chunk above, I found a strong correlation between MDDW and membership in a religious group, so I wanted to look into it further.
+
+```{r MDDW-Religion}
+
+final_member%>%
+  filter(!is.na(mddw))%>%
+  ggplot(aes(x = as_factor(member_religious), fill = as_factor(mddw)))+
+  geom_bar(position = 'fill')+
+  scale_fill_brewer(palette = "Paired", name = "", labels = c("Minimum Dietary Diversity (Women) Not Achieved", "Minimum Dietary Diversity (Women) Achieved"))+
+  labs(title = "Minimum Dietary Diversity Achieved by Women in Household By Religious Affiliation Status", y = "Percent")+
+  scale_y_continuous(labels = scales::percent)+
+  theme_minimal()+
+  theme(plot.title = element_text(size = 12))+
+  scale_x_discrete(labels = c("Non-Religious", "Religious"), name = "")
+
+final_member%>%
+  group_by(member_any, mddw)%>%
+  summarise(n())
+```
+
+#### Does the number of groups matter?
+
 ```{r does the number of groups matter?}
-#define response variable
+
 y <- final_member$member_sum
 
-#define matrix of predictor variables
 final_predict <- final_member%>%
   select(gender_hh_type:member_other2, trees_a:trees_y, trees_why_a:trees_why_k, trees_why_perm:land, land_kind_a:land_kind_b, clear, clear_why_a:clear_why_z, clear_where_a:clear_where_z, clear_protect:honey_why, mush:mush_why, insects:insects_why, fruits:fruits_why, meat:meat_why, plants:plants_why, fish:fish_why, wood:wood_why, char:char_why, protect_water:loss, threats, threats_illegal_logging:threats_resource_use, fuel_sources_1:fuel_sources_6, fuel_sources2_1:fuel_women_hours, ppi:mddw, -starts_with("member"))%>%
   replace(is.na(.), 0)%>%
   na.omit(.)
 x <- data.matrix(final_predict)
 
-#perform k-fold cross-validation to find optimal lambda value
 cv_model <- cv.glmnet(x, y, alpha = 1)
-
-#find optimal lambda value that minimizes test MSE
 best_lambda <- cv_model$lambda.min
-
-#produce plot of test MSE by lambda value
 plot(cv_model) 
-
 best_model <- glmnet(x, y, alpha = 1, lambda = best_lambda)
-
 coef(best_model)
 
 as.data.frame(as.matrix(coef(best_model)))%>%
   arrange(desc(s0))
 
-#use fitted best model to make predictions
-y_predicted <- predict(best_model, s = best_lambda, newx = x)
-
-#find SST and SSE
-sst <- sum((y - mean(y))^2)
-sse <- sum((y_predicted - y)^2)
-
-#find R-Squared
-rsq <- 1 - sse/sst
-rsq
-
-# nope.
+# nope. lasso looked largely the same
 ```
 
-```{r fies-ppi}
+#### How does group membership affect poverty and the lived experience of it?
+
+```{r fies-ppi plots}
 
 final_member_compact%>%
   ggplot(aes(probability_not_in_poverty, how_food_secure, group = as_factor(member_any), color = as_factor(member_any)))+
@@ -853,25 +659,9 @@ final_member%>%
 
 ```
 
-```{r MDDW-Religion}
+#### A deeper dive in NRM practices by group membership status
 
-final_member%>%
-  filter(!is.na(mddw))%>%
-  ggplot(aes(x = as_factor(member_religious), fill = as_factor(mddw)))+
-  geom_bar(position = 'fill')+
-  scale_fill_brewer(palette = "Paired", name = "", labels = c("Minimum Dietary Diversity (Women) Not Achieved", "Minimum Dietary Diversity (Women) Achieved"))+
-  labs(title = "Minimum Dietary Diversity Achieved by Women in Household By Religious Affiliation Status", y = "Percent")+
-  scale_y_continuous(labels = scales::percent)+
-  theme_minimal()+
-  theme(plot.title = element_text(size = 12))+
-  scale_x_discrete(labels = c("Non-Religious", "Religious"), name = "")
-
-final_member%>%
-  group_by(member_any, mddw)%>%
-  summarise(n())
-```
-
-```{r nrm look}
+```{r data set and linear modeling}
 
 final_member_nrm <- final_member%>%
   mutate(nrm_pract_any = rowSums(select(final_member, nrm_pract_a:nrm_pract_g)))%>%
@@ -887,6 +677,10 @@ final_member_nrm%>%
 summary(lm(nrm_pract_any ~ member_any, final_member_nrm))
 summary(lm(nrm_pract_sum ~ member_any, final_member_nrm))
 
+```
+
+```{r corrplot}
+
 final_nrm_corrplot <- final_member_nrm %>%
   select(starts_with("nrm_pract_"), starts_with("member_"), -ends_with("sum"), -ends_with("any"))%>%
   replace(is.na(.), 0)
@@ -898,6 +692,8 @@ testResNRM <- cor.mtest(final_nrm_corrplot, conf.level = 0.95)
 corrplot(NRM[9:18, 1:8, drop=FALSE], method = 'color', p.mat = testResNRM$p[9:18, 1:8], tl.cex = 0.5, insig = 'label_sig', sig.level = c(0.001, 0.01, 0.05), pch.cex = 0.8, number.cex = 0.5,  is.corr = FALSE, col = COL2('BrBG'), cl.pos = 'r', cl.cex = 0.3, tl.col = "black")
 
 ```
+
+START HERE W FINISHING CLEANING
 
 ```{r scratch work on final article}
 final_member%>%
@@ -921,7 +717,7 @@ final_member%>%
   geom_smooth(method = 'lm', se = FALSE)+
   theme_usaid()+
   scale_color_manual(values = c("#BA0C2F", "#002F6C"), name = "", labels = c("Not a Member", "Member of a Group"), guide = guide_legend(reverse = TRUE))+
-  labs(title = "Relationship between Environmental Importance Perception and\nNatural Resource Management Practice Use by Group Membership", x = "Perceived Importance of Ecosystem Services Score", y = "Number of Natural Resource Management Practices Used")
+  labs(title = "Relationship between Environmental Importance Perception \nand Natural Resource Management Practice Use by Group \nMembership", x = "Perceived Importance of Ecosystem Services Score", y = "Number of Natural Resource Management Practices Used")
 
 ggsave("nrm_environment.png")
 
@@ -937,8 +733,6 @@ final_member%>%
 final_member%>%
   group_by(member_any)%>%
   summarise(mean(trees_plant, na.rm = TRUE), n())
-
-
 
 
 ```
