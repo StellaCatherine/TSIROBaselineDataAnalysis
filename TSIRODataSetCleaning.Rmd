@@ -370,9 +370,9 @@ A lasso regression takes one response variable and a whole load of potential ind
 
 ```{r threats}
 
-y <- final_gap_hh$threats
+y <- final$threats
 
-final_predict <- final_gap_hh%>%
+final_predict <- final%>%
   select(gender_hh_type:member_other2, trees_a:trees_y, trees_why_a:trees_why_k, trees_why_perm:land, land_kind_a:land_kind_b, clear, clear_why_a:clear_why_z, clear_where_a:clear_where_z, clear_protect:honey_why, mush:mush_why, insects:insects_why, fruits:fruits_why, meat:meat_why, plants:plants_why, fish:fish_why, wood:wood_why, char:char_why, protect_water:loss, threats, threats_illegal_logging:threats_resource_use, fuel_sources_1:fuel_sources_6, fuel_sources2_1:fuel_women_hours, ppi:mddw, -starts_with("threat"))%>%
   replace(is.na(.), 0)%>%
   na.omit(.)
@@ -529,7 +529,7 @@ summary(lm(mddw ~ member_any, data = final_member))
 
 ```
 
-```{r corrplot}
+```{r member_any corrplot}
 
 final_member_predict <- final_member_compact%>%
   select(member_any, trees_plant, probability_not_in_poverty, how_food_secure, nrm_pract_sum, mddw, protect_sum, threats)%>%
@@ -588,14 +588,21 @@ final_member%>%
   theme(plot.title = element_text(size = 12))+
   scale_x_discrete(labels = c("Non-Religious", "Religious"), name = "")
 
+# percent of members who achieved minimum dietary diversity
 final_member%>%
-  group_by(member_any, mddw)%>%
-  summarise(n())
+  group_by(member_any)%>%
+  summarise(mean(mddw, na.rm = TRUE), n())
+
+# percent of religious members who achieved minimum dietary diversity
+final_member%>%
+  group_by(member_religious)%>%
+  summarise(mean(mddw, na.rm = TRUE), n())
+
 ```
 
 #### Does the number of groups matter?
 
-```{r does the number of groups matter?}
+```{r number groups corrplot}
 
 y <- final_member$member_sum
 
@@ -679,7 +686,7 @@ summary(lm(nrm_pract_sum ~ member_any, final_member_nrm))
 
 ```
 
-```{r corrplot}
+```{r nrm corrplot}
 
 final_nrm_corrplot <- final_member_nrm %>%
   select(starts_with("nrm_pract_"), starts_with("member_"), -ends_with("sum"), -ends_with("any"))%>%
@@ -693,47 +700,53 @@ corrplot(NRM[9:18, 1:8, drop=FALSE], method = 'color', p.mat = testResNRM$p[9:18
 
 ```
 
-START HERE W FINISHING CLEANING
-
-```{r scratch work on final article}
-final_member%>%
-  group_by(member_any)%>%
-  summarise(mean(protect_sum, na.rm = TRUE), n())
-
-final_member%>%
-  group_by(member_any)%>%
-  summarise(mean(threats, na.rm = TRUE), n())
-
-summary(lm(threats ~ member_any, final_member))
-
-final_member%>%
-  group_by(member_any)%>%
-  summarise(mean(nrm_pract_sum, na.rm = TRUE), n())
+```{r perceptions vs. actions graph}
 
 final_member%>%
   filter(protect_sum > -5)%>%
   ggplot(aes(protect_sum, nrm_pract_sum, color = as_factor(member_any)))+
-#  geom_point(position = 'jitter')+
   geom_smooth(method = 'lm', se = FALSE)+
   theme_usaid()+
-  scale_color_manual(values = c("#BA0C2F", "#002F6C"), name = "", labels = c("Not a Member", "Member of a Group"), guide = guide_legend(reverse = TRUE))+
-  labs(title = "Relationship between Environmental Importance Perception \nand Natural Resource Management Practice Use by Group \nMembership", x = "Perceived Importance of Ecosystem Services Score", y = "Number of Natural Resource Management Practices Used")
+  scale_color_manual(values = c("#BA0C2F", "#002F6C"), name = "", labels = c("Not a Member", "Member of a Group"),
+                     guide = guide_legend(reverse = TRUE))+
+  labs(title = "Relationship between Environmental Importance Perception \nand Natural Resource Management Practice Use by Group \nMembership", 
+       x = "Perceived Importance of Ecosystem Services Score",
+       y = "Number of Natural Resource Management Practices Used")
 
 ggsave("nrm_environment.png")
 
+```
 
-final_member%>%
-  group_by(member_any)%>%
-  summarise(mean(mddw, na.rm = TRUE), n())
 
-final_member%>%
-  group_by(member_religious)%>%
-  summarise(mean(mddw, na.rm = TRUE), n())
+```{r tree planting specifically}
 
+# percent of members vs. non-members who planted trees
 final_member%>%
   group_by(member_any)%>%
   summarise(mean(trees_plant, na.rm = TRUE), n())
 
+```
+
+
+```{r more miscellaneous statistics}
+
+# average protect score for members vs. non-members
+final_member%>%
+  group_by(member_any)%>%
+  summarise(mean(protect_sum, na.rm = TRUE), n())
+
+# what percent of members vs. non-members think their environment is under threat
+final_member%>%
+  group_by(member_any)%>%
+  summarise(mean(threats, na.rm = TRUE), n())
+
+# is the correlation between membership and threat perception significant?
+summary(lm(threats ~ member_any, final_member))
+
+# average number of natural resource management practices used, members vs. non-members
+final_member%>%
+  group_by(member_any)%>%
+  summarise(mean(nrm_pract_sum, na.rm = TRUE), n())
 
 ```
 
